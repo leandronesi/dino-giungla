@@ -7,12 +7,24 @@
 
   var W = G.W;
 
+  /* The jungle is TWICE as wide as the screen and the camera follows the dino.
+     Four signs already crowded one screenful — the name plaques were running off
+     the left edge and colliding with each other — and a fifth place would have
+     been impossible. Two arrows jump between the halves for anyone who does not
+     want to walk. */
+  var WORLD_W = 2560;
+  var MAXCAM = WORLD_W - 1280;
+  var cam = 0;              // current camera x, world coordinates
+  var camHold = null;       // an arrow pinned the view here; walking releases it
+
   /* ------------------------------------------------------------- the trail */
   /* Hand-placed control points, smoothed into a polyline once at load time.
      The trail lives low on the screen, well clear of the HUD band (y < 96). */
   var CP = [
     [96, 664], [214, 628], [318, 568], [432, 552], [548, 598],
-    [666, 640], [788, 622], [880, 560], [978, 514], [1096, 496], [1198, 528]
+    [666, 640], [788, 622], [880, 560], [978, 514], [1096, 496], [1198, 528],
+    [1320, 588], [1444, 632], [1566, 614], [1680, 554], [1794, 510],
+    [1912, 526], [2030, 586], [2150, 634], [2272, 602], [2384, 546], [2470, 592]
   ];
 
   function crv(p0, p1, p2, p3, t) {           // Catmull-Rom, one axis
@@ -121,10 +133,10 @@
      It used to be called `ph`, which drawStation() then overwrote with the
      plaque height — after one frame every sign swayed with the same phase. */
   var STATIONS = [
-    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.175, sway: 0.0 },
-    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.505, sway: 1.9 },
-    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.655, sway: 5.5 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.860, sway: 3.7 }
+    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.075, sway: 0.0 },
+    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.275, sway: 1.9 },
+    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.495, sway: 5.5 },
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.715, sway: 3.7 }
   ];
 
   /* How much has been done in each place, for the badge the big one gets.
@@ -155,7 +167,14 @@
     { x: 512, y: 476, s: 208, kind: 'grande' },
     { x: 742, y: 456, s: 168, kind: 'felce' },
     { x: 862, y: 462, s: 182, kind: 'palma' },
-    { x: 1224, y: 512, s: 244, kind: 'grande' }
+    { x: 1224, y: 512, s: 244, kind: 'grande' },
+    { x: 1388, y: 470, s: 178, kind: 'felce' },
+    { x: 1552, y: 486, s: 214, kind: 'grande' },
+    { x: 1738, y: 452, s: 166, kind: 'palma' },
+    { x: 1908, y: 478, s: 196, kind: 'grande' },
+    { x: 2094, y: 458, s: 172, kind: 'felce' },
+    { x: 2258, y: 480, s: 206, kind: 'palma' },
+    { x: 2448, y: 512, s: 246, kind: 'grande' }
   ];
   /* props sit beside the trail; kept sorted by y so the dino can slot in by depth */
   var PROPS = [
@@ -170,7 +189,20 @@
     { k: 'flower', x: 830, y: 682, s: 38, c: '#ff9f43' },
     { k: 'rock', x: 1128, y: 656, s: 46 },
     { k: 'bush', x: 42, y: 712, s: 108, berries: false },
-    { k: 'bush', x: 1256, y: 706, s: 104, berries: true }
+    { k: 'bush', x: 1256, y: 706, s: 104, berries: true },
+    { k: 'flower', x: 1362, y: 528, s: 34, c: '#ffd75e' },
+    { k: 'rock', x: 1470, y: 546, s: 42 },
+    { k: 'bush', x: 1604, y: 560, s: 76, berries: true },
+    { k: 'flower', x: 1732, y: 500, s: 30, c: '#ff6fae' },
+    { k: 'rock', x: 1866, y: 486, s: 36 },
+    { k: 'bush', x: 1984, y: 522, s: 70, berries: false },
+    { k: 'flower', x: 2118, y: 566, s: 36, c: '#8f5bd6' },
+    { k: 'rock', x: 2246, y: 540, s: 44 },
+    { k: 'bush', x: 2372, y: 690, s: 96, berries: true },
+    { k: 'flower', x: 1548, y: 684, s: 38, c: '#ff9f43' },
+    { k: 'bush', x: 1900, y: 672, s: 88, berries: false },
+    { k: 'rock', x: 2140, y: 700, s: 48 },
+    { k: 'bush', x: 2520, y: 712, s: 104, berries: true }
   ].sort(function (a, b) { return a.y - b.y; });
 
   var CLOUDS = [
@@ -181,7 +213,10 @@
   var BUGS = [
     { cx: 330, cy: 486, rx: 74, ry: 34, ph: 0.0, c: '#ff6fae', s: 15 },
     { cx: 736, cy: 512, rx: 96, ry: 28, ph: 2.2, c: '#ffd75e', s: 13 },
-    { cx: 1050, cy: 448, rx: 68, ry: 40, ph: 4.1, c: '#4d80e4', s: 14 }
+    { cx: 1050, cy: 448, rx: 68, ry: 40, ph: 4.1, c: '#4d80e4', s: 14 },
+    { cx: 1490, cy: 494, rx: 82, ry: 32, ph: 1.3, c: '#ffd75e', s: 14 },
+    { cx: 1880, cy: 458, rx: 70, ry: 38, ph: 3.4, c: '#ff6fae', s: 13 },
+    { cx: 2290, cy: 500, rx: 90, ry: 30, ph: 5.2, c: '#4d80e4', s: 15 }
   ];
 
   /* --------------------------------------------------------- dino & state */
@@ -231,7 +266,7 @@
     dino.happy = 1.2;
     G.sfx('pop');
     G.say(POKES[i]);
-    G.fx.burst(dino.x, dino.y - 90, {
+    G.fx.burst(dino.x - cam, dino.y - 90, {
       color: G.C.sun, count: 8, speed: 170, life: 0.5, size: 9, gravity: 320
     });
   }
@@ -239,6 +274,7 @@
   function walkTo(s, id) {
     dino.target = G.clamp(s, 0, PLEN);
     pending = id || null;
+    camHold = null;                 // he moves, so the camera goes back to him
     state = Math.abs(dino.target - dino.s) < 3 ? 'idle' : 'walk';
     if (state === 'idle') arrive();
   }
@@ -252,7 +288,7 @@
       G.sfx('whoosh');
     } else {
       state = 'idle';
-      G.fx.burst(dino.x, dino.y, {
+      G.fx.burst(dino.x - cam, dino.y, {
         color: '#d8c08a', count: 6, speed: 90, life: 0.35, size: 8, gravity: 260
       });
     }
@@ -260,7 +296,7 @@
 
   function goStation(st) {
     G.sfx('tap');
-    G.fx.ring(st.cx, st.cy, G.C.sun, SIGN_R + 40);
+    G.fx.ring(st.cx - cam, st.cy, G.C.sun, SIGN_R + 40);
     st.pop = 1;
     // The little ones cannot read: the sign invites them out loud instead.
     if (!big) G.say(st.go);
@@ -422,6 +458,41 @@
     c.restore();
   }
 
+  /* Two arrows to hop between the halves without walking. They pin the camera;
+     the moment the dino moves anywhere the pin is released and the view goes
+     back to following him. One mental model, no modes: you are always looking
+     at wherever the dino is about to be. */
+  function camArrow(c, x, y, r, dir) {
+    c.save();
+    c.strokeStyle = G.C.ink; c.lineWidth = Math.max(7, r * 0.20);
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath();
+    c.moveTo(x + dir * r * 0.22, y - r * 0.42);
+    c.lineTo(x - dir * r * 0.22, y);
+    c.lineTo(x + dir * r * 0.22, y + r * 0.42);
+    c.stroke();
+    c.restore();
+  }
+
+  function drawArrows() {
+    if (MAXCAM <= 0) return;
+    var target = camHold !== null ? camHold : G.clamp(dino.x - W / 2, 0, MAXCAM);
+    if (target > 12) {
+      G.ui.round({
+        id: 'cam-l', x: 76, y: 372, r: 56, color: 'rgba(255,246,224,.82)',
+        icon: function (cc, x, y, r) { camArrow(cc, x, y, r, -1); },
+        onTap: function () { camHold = 0; G.sfx('whoosh'); }
+      });
+    }
+    if (target < MAXCAM - 12) {
+      G.ui.round({
+        id: 'cam-r', x: W - 76, y: 372, r: 56, color: 'rgba(255,246,224,.82)',
+        icon: function (cc, x, y, r) { camArrow(cc, x, y, r, 1); },
+        onTap: function () { camHold = MAXCAM; G.sfx('whoosh'); }
+      });
+    }
+  }
+
   function plaqueWidth(c, st, size) {
     if (st._w && st._ws === size) return st._w;
     c.save();
@@ -579,6 +650,8 @@
       pending = null;
       idleT = 0;
       nudges = 0;
+      camHold = null;
+      cam = G.clamp(dino.x - W / 2, 0, MAXCAM);   // start framed on him, no slide
       hushPending();
 
       var who = (G.account && G.account.name) || 'Dino';
@@ -629,7 +702,8 @@
           idleT = 0; nudges++;
           dino.happy = 1.2;
           var hint = nearestStation();
-          G.fx.ring(hint.cx, hint.cy, G.C.sun, SIGN_R + 60);
+          // effects live in screen space, the station in world space
+          G.fx.ring(hint.cx - cam, hint.cy, G.C.sun, SIGN_R + 60);
           G.say('Tocca un cartello per giocare!');
         }
       } else {
@@ -655,14 +729,25 @@
       }
       posAt(dino.s, tmpA);
       dino.x = tmpA.x; dino.y = tmpA.y;
+
+      // Camera: on the dino, unless an arrow pinned it somewhere else.
+      var ct = camHold !== null ? camHold : G.clamp(dino.x - W / 2, 0, MAXCAM);
+      cam += (ct - cam) * Math.min(1, dt * 6);
+      if (Math.abs(ct - cam) < 0.5) cam = ct;
     },
 
     draw: function (c) {
       var i, p;
 
+      /* Backdrop and clouds stay in SCREEN space: they are the far distance, so
+         holding them still while the trail slides reads as depth, and it costs
+         nothing. Everything the child can touch lives in world space below. */
       A.jungle(c, G.t);
-
       for (i = 0; i < CLOUDS.length; i++) A.cloud(c, CLOUDS[i].x, CLOUDS[i].y, CLOUDS[i].s);
+
+      c.save();
+      c.translate(-cam, 0);
+
       for (i = 0; i < TREES.length; i++) A.tree(c, TREES[i].x, TREES[i].y, TREES[i].s, { kind: TREES[i].kind });
 
       drawTrail(c);
@@ -701,22 +786,25 @@
       c.beginPath();
       c.ellipse(dino.x, dino.y + 4, size * 0.30, size * 0.10, 0, 0, 7);
       c.fill();
-      // hat and colour come from elsewhere: hand the art library only what it
-      // can use, an old save may well carry something else in there.
-      var hat = typeof G.save.hat === 'string' ? G.save.hat : null;
+      // This is the CURRENT player, so we pass no `gear` and no `hat` and let
+      // A.dino read the live save (G.look hardens it). Naming `hat` here would
+      // mean "I am drawing somebody else" and would strip the glasses and the
+      // bow tie off him — see CONTRACT.md.
       var col = (G.account && typeof G.account.color === 'string') ? G.account.color : G.C.dino;
       A.dino(c, dino.x, dino.y, size, {
         facing: dino.facing,
         pose: state === 'walk' ? 'walk' : (dino.happy > 0 ? 'happy' : 'idle'),
         t: G.t,
-        hat: hat,
         color: col
       });
 
       // props in front of the dino
       while (di < PROPS.length) { drawProp(c, PROPS[di]); di++; }
 
+      c.restore();
+
       A.canopy(c, G.t);
+      drawArrows();
     },
 
     onDown: function (p) {
@@ -727,22 +815,26 @@
       }
       hushPending();                              // never talk over his own tap
 
+      // Everything below is hit-tested in WORLD coordinates: the finger arrives
+      // in screen space and the world may be scrolled under it.
+      var wx = p.x + cam;
+
       var i, st, r;
       // stations first: the board is the primary thing to touch
       for (i = 0; i < STATIONS.length; i++) {
         st = STATIONS[i];
         r = SIGN_R + 16;
-        if (G.dist(p.x, p.y, st.cx, st.cy) <= r) { goStation(st); return; }
+        if (G.dist(wx, p.y, st.cx, st.cy) <= r) { goStation(st); return; }
         // the name plaque hangs below the board and reads as part of the sign
-        if (st.pw > 0 && p.x >= st.px && p.x <= st.px + st.pw &&
+        if (st.pw > 0 && wx >= st.px && wx <= st.px + st.pw &&
             p.y >= st.py && p.y <= st.py + st.ph) { goStation(st); return; }
       }
 
       // then the dino himself
-      if (G.dist(p.x, p.y, dino.x, dino.y - 54) <= 74) { pokeDino(); return; }
+      if (G.dist(wx, p.y, dino.x, dino.y - 54) <= 74) { pokeDino(); return; }
 
       // anywhere near the trail: walk there. Tapping while walking re-aims.
-      var n = nearestOnTrail(p.x, p.y);
+      var n = nearestOnTrail(wx, p.y);
       if (n.d <= 210) {
         G.sfx('tap');
         walkTo(n.s, null);

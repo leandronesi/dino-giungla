@@ -95,9 +95,11 @@
   }
   function drawDino(c, x, y, s) {
     if (typeof A !== 'undefined' && A.dino) {
+      // Current player: no `hat`, no `gear` — A.dino reads the live save, so the
+      // glasses and the bow tie come along too (see CONTRACT.md).
       A.dino(c, x, y, s, {
         facing: 1, pose: pose, t: G.t,
-        hat: G.save.hat, color: (G.account && G.account.color) || C.dino
+        color: (G.account && G.account.color) || C.dino
       });
       return;
     }
