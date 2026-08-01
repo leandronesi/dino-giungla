@@ -487,20 +487,25 @@
       icon: function (cc, ccx, ccy, r) { dice(cc, ccx, ccy, r * 0.9); },
       onTap: roll
     });
+    // The dice needs its caption on the same line as the four slots, or the
+    // next thing printed there gets read as its name.
+    G.text('Sorpresa', 1128, 232, {
+      size: 20, color: C.cream, weight: 800, stroke: 'rgba(12,40,25,.7)', strokeWidth: 6
+    });
 
     // shelf of the active slot: nine cells, "Niente" always first
     var pool = ownedList().filter(function (it) { return it.slot === g.slot; });
     var cells = [null].concat(pool.map(function (it) { return it.id; })).slice(0, 9);
     for (i = 0; i < cells.length; i++) {
       (function (id, idx) {
-        var bx = 600 + (idx % 3) * 208, by = 258 + Math.floor(idx / 3) * 154;
+        var bx = 600 + (idx % 3) * 208, by = 252 + Math.floor(idx / 3) * 138;
         var on = wornIn(g.slot) === id;
         G.ui.button({
-          id: 'cell' + g.slot + idx, x: bx, y: by, w: 190, h: 140, r: 22,
+          id: 'cell' + g.slot + idx, x: bx, y: by, w: 190, h: 130, r: 22,
           color: on ? C.leafLight : C.cream,
           icon: function (cc, ccx, ccy) {
             if (!id) { cross(cc, ccx, ccy, 40); return; }
-            preview(cc, A.gearOf(id), ccx, ccy, 84);
+            preview(cc, A.gearOf(id), ccx, ccy, 78);
           },
           onTap: function () {
             if (!id) {
@@ -508,7 +513,7 @@
               S.react = 0; S.last = null;
               return;
             }
-            toggle(id, bx + 95, by + 70, dx, dy - ds * 0.72);
+            toggle(id, bx + 95, by + 65, dx, dy - ds * 0.72);
           }
         });
       })(cells[i], i);
@@ -517,12 +522,14 @@
     drawShots(c, g, dx, dy, ds);
     drawMate(c);
     drawFly(c);
-    drawProgress(c, 330, 690);
-
-    // collection pips: a count, never a judgement
+    /* Bottom right, in the strip the shorter shelf frees up. It used to sit at
+       (330, 690), straight on top of the second portrait, and the counter used
+       to sit under the dice — where it read as the name of the dice. */
+    drawProgress(c, 1214, 686);
     var have = ownedList().length, tot = CRATE_ORDER.length;
-    G.text(have + ' di ' + tot, 1128, 232, {
-      size: 20, color: C.cream, weight: 800, stroke: 'rgba(12,40,25,.7)', strokeWidth: 6
+    G.text(have + ' di ' + tot, 1176, 692, {
+      size: 24, color: C.cream, weight: 800, align: 'right',
+      stroke: 'rgba(12,40,25,.7)', strokeWidth: 7
     });
   }
 
