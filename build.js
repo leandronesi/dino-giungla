@@ -40,9 +40,20 @@ const html = shell
 fs.writeFileSync(path.join(root, 'index.html'), html);
 
 // Service worker: cache name keyed to content so a deploy busts the old cache.
-const hash = crypto.createHash('sha1').update(html).digest('hex').slice(0, 10);
-const sw = read('sw.template.js').replace('__VERSION__', () => hash);
+// The template counts too — changing only the caching strategy still has to
+// invalidate what the old strategy put there.
+const swTpl = read('sw.template.js');
+const hash = crypto.createHash('sha1').update(html).update(swTpl).digest('hex').slice(0, 10);
+const sw = swTpl.replace('__VERSION__', () => hash);
 fs.writeFileSync(path.join(root, 'sw.js'), sw);
+
+// A syntax error here would only show up on a device, and only offline.
+try {
+  new vm.Script(sw, { filename: 'sw.js' });
+} catch (e) {
+  console.error('\n[BUILD FAILED] syntax error in sw.js:\n' + e.message + '\n');
+  process.exit(1);
+}
 
 // Body-only variant (for embedding where <html>/<head>/<body> are supplied).
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
