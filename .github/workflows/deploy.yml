@@ -26,7 +26,11 @@ jobs:
         run: |
           node build.js
           node make-icons.js
+      # enablement: turns Pages on via the API, so nobody has to visit
+      # Settings -> Pages -> Source after the first push.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'

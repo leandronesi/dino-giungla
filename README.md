@@ -56,6 +56,9 @@ elimina un giocatore, schermo intero.
 
 ### 1. Pubblicarlo (una volta sola)
 
+Crea su GitHub un repo **vuoto e pubblico** chiamato `dino-giungla`
+(niente README, niente .gitignore), poi:
+
 ```bash
 cd dino-giungla
 git init && git add -A && git commit -m "Dino Giungla"
@@ -64,13 +67,22 @@ git remote add origin https://github.com/<tuo-utente>/dino-giungla.git
 git push -u origin main
 ```
 
-Poi su GitHub: **Settings → Pages → Source: GitHub Actions**. Il workflow in
-[.github/workflows/deploy.yml](.github/workflows/deploy.yml) ricostruisce
-`index.html` da `src/` e pubblica. L'indirizzo sarà:
+Non serve altro: il workflow in
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) accende Pages da
+solo (`enablement: true`), ricostruisce `index.html` da `src/` e pubblica. Il
+primo deploy richiede un paio di minuti; li segui in **Actions**. L'indirizzo
+sarà:
 
 ```
 https://<tuo-utente>.github.io/dino-giungla/
 ```
+
+> **Perché pubblico.** Con un account GitHub Free, Pages pubblica solo da repo
+> pubbliche (su repo private serve un piano Pro/Team). Non è un problema: nel
+> repo non c'è niente di personale. Nomi dei bambini, età e segreti a 3 figure
+> si creano giocando e restano nel `localStorage` del tablet — non entrano mai
+> nel codice. Se ti serve davvero una repo privata, l'alternativa gratuita è
+> Cloudflare Pages (build: `node build.js && node make-icons.js`).
 
 ### 2. Installarlo sul tablet
 
