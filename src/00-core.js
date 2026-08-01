@@ -578,7 +578,11 @@
       G.noShadow(c);
       c.restore();
       drawIcon(c, x + 32, 46, 24);
-      G.text(String(value), x + 62, 47, { ctx: c, size: 34, color: col, align: 'left' });
+      // maxWidth or the fruit counter runs out of its own pill at five digits
+      // and lands on the star pill, which starts at x = 180.
+      G.text(String(value), x + 62, 47, {
+        ctx: c, size: 34, color: col, align: 'left', maxWidth: w - 74
+      });
     };
     pill(16, 150, function (cc, x, y, r) {
       if (window.A && A.fruit) A.fruit(cc, x, y, r, 'fragola');
