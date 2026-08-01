@@ -67,11 +67,15 @@ git remote add origin https://github.com/<tuo-utente>/dino-giungla.git
 git push -u origin main
 ```
 
-Non serve altro: il workflow in
-[.github/workflows/deploy.yml](.github/workflows/deploy.yml) accende Pages da
-solo (`enablement: true`), ricostruisce `index.html` da `src/` e pubblica. Il
-primo deploy richiede un paio di minuti; li segui in **Actions**. L'indirizzo
-sarà:
+Poi, **una volta sola**, su GitHub: **Settings → Pages → Source: GitHub
+Actions**. Va fatto a mano: creare un sito Pages via API richiede diritti di
+admin che il `GITHUB_TOKEN` del workflow non ha, quindi la Action non può
+accendersi da sola (fallisce con *"Resource not accessible by integration"*).
+
+Da lì in poi il workflow in
+[.github/workflows/deploy.yml](.github/workflows/deploy.yml) ricostruisce
+`index.html` da `src/` e pubblica a ogni push su `main`. Il primo deploy
+richiede un paio di minuti; li segui in **Actions**. L'indirizzo sarà:
 
 ```
 https://<tuo-utente>.github.io/dino-giungla/
