@@ -1,7 +1,10 @@
-/* Il Nido — the clearing you look after, plus the hat shop.
+/* Il Nido — the clearing you look after: plots that grow fruit you tap to
+   collect.
 
-   Two tabs under the HUD: "Radura" (plots that grow fruit you tap to collect)
-   and "Cappellini" (stars -> hats, the real reward of the whole game).
+   This scene used to have a second tab with the hat shop in it. The shop left
+   for `guardaroba` (23-guardaroba.js), which owns G.save.hat / G.save.hats now;
+   nothing here ever touched the star counter anyway. Fruit is the only currency
+   spent in this file.
 
    Level 1 (3 years old): 3 plots, half price, no upgrades, one huge "Raccogli"
    button per plot so precision is never required, fat tap radius on the
@@ -54,10 +57,6 @@
   /* The art library owns the house style; every call degrades to a decent
      local drawing so a half-loaded `A` can never blank the scene. */
   function A_(n) { return (typeof A !== 'undefined' && A && typeof A[n] === 'function') ? A[n] : null; }
-  function hatCatalog() {
-    var h = (typeof A !== 'undefined' && A) ? A.HATS : null;
-    return (h && h.length) ? h : null;
-  }
   function dinoColor() { return (G.account && G.account.color) || C.dino; }
 
   /* Stroke-then-fill a list of circles [x,y,r, x,y,r, ...] as one silhouette:
@@ -77,13 +76,6 @@
     var f = A_('fruit');
     if (f) { f(c, x, y, r, kind || 'fragola'); return; }
     c.save(); c.fillStyle = C.berry;
-    c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
-  }
-  function starIcon(c, x, y, r) {
-    var f = A_('star');
-    if (f) { f(c, x, y, r); return; }
-    if (G.starIcon) { G.starIcon(c, x, y, r); return; }
-    c.save(); c.fillStyle = C.sun;
     c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
   }
   function board(c, x, y, w, h, r) {
@@ -117,32 +109,9 @@
     c.stroke();
     c.restore();
   }
-  function arrowGlyph(c, x, y, s, dir) {
-    c.save();
-    c.strokeStyle = C.ink; c.lineWidth = Math.max(7, s * .32);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(x + dir * s * .32, y - s * .62);
-    c.lineTo(x - dir * s * .30, y);
-    c.lineTo(x + dir * s * .32, y + s * .62);
-    c.stroke();
-    c.restore();
-  }
-  function checkBadge(c, x, y, r) {
-    c.save();
-    c.fillStyle = C.leafDark; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
-    c.strokeStyle = '#ffffff'; c.lineWidth = Math.max(4, r * .30);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(x - r * .44, y + r * .02);
-    c.lineTo(x - r * .10, y + r * .40);
-    c.lineTo(x + r * .48, y - r * .40);
-    c.stroke();
-    c.restore();
-  }
-
   /* -------------------------------------------------------------- save shape */
-  /* Only G.save.nido (plus the hats branch the contract hands to this scene).
+  /* Only G.save.nido. The hats used to live here too, back when this scene also
+     housed the shop; they belong to `guardaroba` now (see 23-guardaroba.js).
      Anything missing, stale or of the wrong type is rebuilt, never trusted. */
   function bank() {
     G.save.nido ??= {};
@@ -162,35 +131,18 @@
       it.chicks = G.clamp(Math.round(num(it.chicks, 0)), 0, MAX_CHICKS);
     });
     sv.lastSeen = num(sv.lastSeen, 0);
-    sv.page = G.clamp(Math.round(num(sv.page, 0)), 0, 30);
-    G.save.hats ??= [];
-    if (!Array.isArray(G.save.hats)) G.save.hats = [];
-    if (typeof G.save.hat !== 'string') G.save.hat = null;
     G.save.seen ??= {};
     if (!G.save.seen || typeof G.save.seen !== 'object') G.save.seen = {};
     return sv;
   }
-  function starsOwned() { return Math.max(0, Math.floor(num(G.save.stars, 0))); }
   function fruitsOwned() { return Math.max(0, Math.floor(num(G.save.fruits, 0))); }
-
-  /* Hats are the one place allowed to touch the star counter by hand. */
-  function spendStars(n) {
-    n = Math.round(n);
-    if (starsOwned() < n) return false;
-    G.save.stars = starsOwned() - n;
-    G.saveNow();
-    return true;
-  }
 
   /* ------------------------------------------------------------ scene state */
   var S = {
-    tab: 'radura',
     bub: {},          // def id -> [{x, y, v, ph}]
     chicks: [],       // {x: -1..1, dir, ph, sp}
     pet: {},          // def id -> petting cooldown left
     pop: {},          // def id -> squash animation 1 -> 0
-    page: 0,
-    tryId: null, tryT: 0,
     gift: false,
     idle: 0, hintT: 0, hello: 0, saveT: 0
   };
@@ -203,8 +155,8 @@
     if (LClevel !== G.level) {
       LClevel = G.level;
       LC = G.level === 2
-        ? { n: 5, w: 232, gap: 16, x0: 28,  bY: 516, bH: 112, iY: 664, bubR: 50, tapK: 1.06, perPage: 4, cardW: 190, cardGap: 14 }
-        : { n: 3, w: 340, gap: 32, x0: 98,  bY: 508, bH: 132, iY: 684, bubR: 62, tapK: 1.30, perPage: 3, cardW: 256, cardGap: 20 };
+        ? { n: 5, w: 232, gap: 16, x0: 28,  bY: 516, bH: 112, iY: 664, bubR: 50, tapK: 1.06 }
+        : { n: 3, w: 340, gap: 32, x0: 98,  bY: 508, bH: 132, iY: 684, bubR: 62, tapK: 1.30 };
     }
     return LC;
   }
@@ -580,50 +532,12 @@
     }
   }
 
-  /* ------------------------------------------------------------------- tabs */
-  function bushGlyph(c, x, y, s) {
-    c.save();
-    c.fillStyle = C.leafLight;
-    c.beginPath(); c.arc(x, y - s * .06, s * .30, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x - s * .25, y + s * .11, s * .22, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x + s * .25, y + s * .11, s * .22, 0, TAU); c.fill();
-    c.fillStyle = C.berry;
-    c.beginPath(); c.arc(x - s * .10, y - s * .04, s * .09, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x + s * .15, y + s * .09, s * .09, 0, TAU); c.fill();
-    c.restore();
-  }
-  function hatGlyph(c, x, y, s) {
-    var f = A_('hat'), hats = hatCatalog();
-    if (f && hats) { f(c, x, y, s * .95, hats[0].id); return; }
-    c.save();
-    c.fillStyle = C.berry;
-    c.beginPath(); c.ellipse(x, y + s * .18, s * .46, s * .13, 0, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x, y + s * .08, s * .27, Math.PI, 0); c.fill();
-    c.fillStyle = C.sun;
-    c.fillRect(x - s * .27, y + s * .02, s * .54, s * .09);
-    c.restore();
-  }
+  /* ------------------------------------------------------------------ title */
 
+  /* One title, no tabs: the hat shop that used to sit beside the clearing moved
+     out to its own place, so this scene is a single product again and gets its
+     y 104..206 band back. */
   function drawTabs(c, sv) {
-    var tabs = [
-      { id: 'radura', label: 'Radura', icon: bushGlyph },
-      { id: 'hats', label: 'Cappellini', icon: hatGlyph }
-    ];
-    tabs.forEach(function (o, i) {
-      var on = S.tab === o.id;
-      G.ui.button({
-        id: 'nido-tab-' + o.id, x: 28 + i * 262, y: TAB_Y, w: 250, h: TAB_H, r: 26,
-        color: on ? C.leaf : '#8b7c6b', fontSize: on ? 33 : 29,
-        label: o.label, icon: o.icon,
-        onTap: function () {
-          if (S.tab === o.id) return;
-          S.tab = o.id; S.idle = 0; S.tryT = 0; S.tryId = null;
-          G.sfx('whoosh');
-          G.say(o.id === 'hats' ? 'I cappellini!' : 'La radura!');
-        }
-      });
-    });
-
     var sign = A_('sign');
     if (sign) sign(c, 578, TAB_Y - 4, 272, TAB_H + 8, 'Il Nido');
     else {
@@ -633,7 +547,7 @@
 
     // Level 2 gets a single "collect everything" button; level 1 has one huge
     // button per plot instead, which is easier to understand at three.
-    if (G.level !== 2 || S.tab !== 'radura') return;
+    if (G.level !== 2) return;
     var n = nSlots(), tot = 0;
     DEFS.forEach(function (d, i) { if (i < n) tot += bubSum(S.bub[d.id]); });
     if (tot <= 0) return;
@@ -795,163 +709,6 @@
   }
 
   /* ------------------------------------------------------------- the hat shop */
-  function previewHat() {
-    if (S.tryT > 0 && S.tryId) return S.tryId;
-    return G.save.hat || null;
-  }
-  function hatName(id) {
-    var hats = hatCatalog(), i;
-    if (!hats || !id) return 'Senza cappello';
-    for (i = 0; i < hats.length; i++) if (hats[i].id === id) return hats[i].name || 'Cappello';
-    return 'Cappello';
-  }
-
-  function drawShop(c) {
-    var hats = hatCatalog(), L = conf();
-    c.save(); c.fillStyle = 'rgba(9,32,21,.38)'; c.fillRect(0, FIELD_TOP - 6, W, H - FIELD_TOP + 6); c.restore();
-
-    /* ---- left: the dino wearing whatever you are looking at */
-    board(c, 36, 208, 372, 384, 30);
-    var pid = previewHat();
-    G.text(hatName(pid), 222, 254, { size: 30, color: C.ink, maxWidth: 330 });
-    if (S.tryT > 0 && S.tryId && G.save.hats.indexOf(S.tryId) < 0) {
-      G.text('lo stai provando', 222, 296, { size: 22, color: '#8a7864', weight: 700 });
-    }
-    var dinoFn = A_('dino');
-    if (dinoFn) dinoFn(c, 222, 560, 244, { color: dinoColor(), hat: pid, pose: 'happy', t: G.t, facing: 1 });
-    else blobs(c, [222, 480, 82, 222, 386, 54], dinoColor(), 5);
-
-    var bare = !G.save.hat;
-    G.ui.button({
-      id: 'nido-bare', x: 36, y: 600, w: 372, h: 104, r: 26,
-      color: bare ? '#a49889' : C.bark, label: 'Senza cappello', fontSize: 30,
-      onTap: function () {
-        S.tryT = 0; S.tryId = null;
-        if (bare) { G.say('Il dino è già senza cappello.'); return; }
-        G.save.hat = null; G.saveNow(); G.sfx('pop'); G.say('Senza cappello!');
-      }
-    });
-
-    /* ---- right: the shelves */
-    if (!hats) {
-      board(c, 432, 208, 812, 336, 28);
-      G.text('I cappellini arrivano presto!', 838, 348, { size: 36, color: C.ink });
-      G.text('Intanto raccogli tante stelline', 838, 408, { size: 26, color: '#8a7864', weight: 700 });
-      return;
-    }
-
-    var per = L.perPage, pages = Math.max(1, Math.ceil(hats.length / per));
-    if (S.page >= pages) S.page = 0;
-    var step = L.cardW + L.cardGap, first = S.page * per, i, h;
-    for (i = 0; i < per; i++) {
-      h = hats[first + i];
-      if (!h) break;
-      drawHatCard(c, h, 432 + i * step, 208, L.cardW, 336);
-    }
-
-    if (pages > 1) {
-      G.ui.round({
-        id: 'nido-prev', x: 520, y: 628, r: 62, color: C.cream,
-        icon: function (cc, x, y, r) { arrowGlyph(cc, x, y, r * .5, -1); },
-        onTap: function () { S.page = (S.page + pages - 1) % pages; G.sfx('whoosh'); }
-      });
-      G.ui.round({
-        id: 'nido-next', x: 1160, y: 628, r: 62, color: C.cream,
-        icon: function (cc, x, y, r) { arrowGlyph(cc, x, y, r * .5, 1); },
-        onTap: function () { S.page = (S.page + 1) % pages; G.sfx('whoosh'); }
-      });
-      for (i = 0; i < pages; i++) {
-        c.save();
-        c.fillStyle = i === S.page ? C.sun : 'rgba(255,246,224,.45)';
-        c.beginPath(); c.arc(840 - (pages - 1) * 16 + i * 32, 628, i === S.page ? 12 : 9, 0, TAU); c.fill();
-        c.restore();
-      }
-    } else {
-      starIcon(c, 740, 628, 22);
-      G.text('Le stelline si vincono nei giochi!', 776, 628, {
-        size: 28, color: C.cream, align: 'left', stroke: 'rgba(10,36,22,.7)', strokeWidth: 7
-      });
-    }
-  }
-
-  function drawHatCard(c, h, x, y, w, hh) {
-    var owned = G.save.hats.indexOf(h.id) >= 0;
-    var worn = G.save.hat === h.id;
-    var price = Math.max(1, Math.round(num(h.price, 5)));
-    var afford = starsOwned() >= price;
-    var cx = x + w / 2;
-    var face = worn ? '#ffe9a8' : owned ? '#dff5e6' : afford ? C.cream : '#ded3c4';
-
-    c.save();
-    c.fillStyle = 'rgba(30,18,6,.28)';
-    G.roundRect(c, x, y + 8, w, hh, 26); c.fill();
-    c.fillStyle = face;
-    G.roundRect(c, x, y, w, hh, 26); c.fill();
-    c.strokeStyle = worn ? '#d9a01c' : owned ? C.leafDark : C.bark;
-    c.lineWidth = worn ? 8 : 5;
-    G.roundRect(c, x + 4, y + 4, w - 8, hh - 8, 22); c.stroke();
-    c.restore();
-
-    var hatFn = A_('hat'), hs = G.level === 2 ? 118 : 150;
-    if (hatFn) hatFn(c, cx, y + 126, hs, h.id);
-    else {
-      c.save();
-      c.fillStyle = C.plum;
-      c.beginPath(); c.ellipse(cx, y + 150, hs * .46, hs * .13, 0, 0, TAU); c.fill();
-      c.beginPath(); c.arc(cx, y + 138, hs * .28, Math.PI, 0); c.fill();
-      c.restore();
-    }
-    G.text(h.name || 'Cappello', cx, y + 224, {
-      size: G.level === 2 ? 22 : 26, color: C.ink, maxWidth: w - 24
-    });
-
-    // action strip: price, or what tapping will do
-    c.save();
-    c.fillStyle = worn ? '#f6cf62' : owned ? '#b8e6c6' : 'rgba(40,24,8,.10)';
-    G.roundRect(c, x + 14, y + 250, w - 28, 66, 20); c.fill();
-    c.restore();
-    if (worn) {
-      G.text('Addosso!', cx, y + 283, { size: 27, color: '#6b4a08' });
-    } else if (owned) {
-      G.text('Indossa', cx, y + 283, { size: 27, color: C.leafDark });
-    } else {
-      var wide = price > 9 ? 20 : 12;
-      starIcon(c, cx - wide - 20, y + 283, 20);
-      G.text(nShow(price), cx - wide + 10, y + 283, {
-        size: 34, color: afford ? C.ink : '#7d7166', align: 'left'
-      });
-    }
-    if (owned) checkBadge(c, x + w - 30, y + 30, 19);
-
-    // invisible hit area over the card art (the core paints the press state)
-    G.ui.button({
-      id: 'nido-hat-' + h.id, x: x, y: y, w: w, h: hh, r: 26, ghost: true,
-      onTap: function () {
-        S.tryId = h.id; S.tryT = 4;
-        if (owned) {
-          if (worn) { G.sfx('pop'); G.say('Ti sta benissimo!'); return; }
-          G.save.hat = h.id; G.saveNow(); G.sfx('good');
-          G.fx.ring(222, 420, C.sun, 180);
-          G.fx.burst(222, 420, { color: C.sun, count: 14, speed: 220, size: 11, life: .7, shape: 'star' });
-          G.say('Ecco ' + (h.name || 'il cappello') + '!');
-          return;
-        }
-        if (spendStars(price)) {
-          G.save.hats.push(h.id);
-          G.save.hat = h.id;
-          G.saveNow();
-          G.fx.confetti(); G.sfx('win');
-          G.fx.ring(222, 420, C.sun, 210);
-          G.say('Hai comprato ' + (h.name || 'il cappello') + '!');
-        } else {
-          // no scolding: you get to try it on while you save up for it
-          softNo('star', cx, y + 60);
-        }
-      }
-    });
-  }
-
-  /* ------------------------------------------------------- welcome-back panel */
   function drawWelcome(c) {
     var i, a, rr;
     c.save(); c.fillStyle = 'rgba(8,26,18,.64)'; c.fillRect(0, 0, W, H); c.restore();
@@ -995,11 +752,8 @@
   G.scene('nido', {
     enter: function () {
       var sv = bank(), n = nSlots();
-      S.tab = 'radura';
       S.bub = {}; S.chicks = []; S.pet = {}; S.pop = {};
-      S.tryId = null; S.tryT = 0;
       S.idle = 0; S.hintT = 0; S.saveT = 0; S.hello = .5;
-      S.page = G.clamp(sv.page, 0, 30);
       WB.on = false; WB.total = 0; WB.chicks = 0; WB.t = 0;
       DEFS.forEach(function (d) { S.bub[d.id] = []; });
 
@@ -1043,7 +797,6 @@
         sv.items[d.id].pend = G.clamp(Math.round(bubSum(S.bub[d.id] || [])), 0, STORE_CAP);
       });
       sv.lastSeen = Date.now();
-      sv.page = S.page;
       // never swallow the welcome-back gift, even if we walk out on it
       if (WB.on && WB.total >= 1) { G.addFruits(WB.total, 640, 322); WB.on = false; WB.total = 0; }
       G.saveNow();
@@ -1060,7 +813,6 @@
           else G.say(G.pick(['Benvenuto nel Nido!', 'Ecco la tua radura!', 'Guarda come cresce il Nido!']));
         }
       }
-      if (S.tryT > 0) S.tryT = Math.max(0, S.tryT - dt);
       for (i = 0; i < DEFS.length; i++) {
         d = DEFS[i];
         if (S.pop[d.id] > 0) S.pop[d.id] = Math.max(0, S.pop[d.id] - dt * 2.6);
@@ -1097,7 +849,7 @@
       var ripe = 0;
       DEFS.forEach(function (d, i) { if (i < n) ripe += bubSum(S.bub[d.id]); });
       S.idle += dt;
-      if (S.tab === 'radura' && ripe > 0 && S.idle > 6) {
+      if (ripe > 0 && S.idle > 6) {
         S.hintT -= dt;
         if (S.hintT <= 0) {
           S.hintT = 2.4;
@@ -1116,14 +868,13 @@
     draw: function (c) {
       var sv = bank();               // an ancient or partial save must not crash us
       drawBg(c);
-      if (S.tab === 'radura') drawField(c, sv, !WB.on);
-      else drawShop(c);
+      drawField(c, sv, !WB.on);
       if (!WB.on) drawTabs(c, sv);
       else drawWelcome(c);
     },
 
     onDown: function (p) {
-      if (WB.on || S.tab !== 'radura' || p.y < FIELD_TOP) return;
+      if (WB.on || p.y < FIELD_TOP) return;
       S.idle = 0; S.hintT = 0;
 
       var L = conf(), sv = bank(), n = L.n, i, j;

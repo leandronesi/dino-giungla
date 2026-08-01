@@ -720,6 +720,29 @@
     G.text(perfect && G.level === 2 ? 'Perfetto!' : 'Evviva!', W / 2, py + 74, { size: 58, color: C.ink });
     var stars = (perfect && G.level === 2) ? 2 : 1, i;
     for (i = 0; i < stars; i++) G.starIcon(c, W / 2 + (i - (stars - 1) / 2) * 72, py + 146, 30);
+    /* Third button only when a present is actually waiting, so the two-button
+       panel the children already know is untouched the rest of the time. */
+    var crate = (typeof G.crates === 'function') ? G.crates() : 0;
+    if (crate > 0) {
+      G.ui.button({
+        x: px + 28, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Ancora!', color: C.leaf, fontSize: 30, iconSize: 48,
+        icon: iconRestart,
+        onTap: function () { newGrid(); }
+      });
+      G.ui.button({
+        x: px + 255, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Apri la cassa!', color: C.plum, fontSize: 24,
+        onTap: function () { G.go('guardaroba'); }
+      });
+      G.ui.button({
+        x: px + 482, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Giungla', color: C.tangerine, fontSize: 30, iconSize: 48,
+        icon: iconHouse,
+        onTap: function () { G.home(); }
+      });
+      return;
+    }
     G.ui.button({
       x: px + 42, y: py + 196, w: 300, h: 150, r: 32,
       label: 'Ancora!', color: C.leaf, fontSize: 38, iconSize: 56,

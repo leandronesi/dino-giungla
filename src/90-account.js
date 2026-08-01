@@ -30,8 +30,19 @@
     c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.stroke(); c.restore();
   }
 
-  function dinoPreview(c, x, y, s, color, hat, pose) {
-    if (window.A && A.dino) { A.dino(c, x, y, s, { color: color, hat: hat, pose: pose || 'idle', t: G.t, facing: 1 }); return; }
+  /* `gear` is a look object from G.look (see 01c-art-gear.js). Pass one when
+     drawing SOMEBODY ELSE'S dino; pass nothing for the current player and
+     A.dino resolves the current save itself.
+     Every account gets its OWN buffer — this screen draws up to five dinos in
+     a single frame, and a shared one would put the last child's hat on all of
+     them. To a three-year-old that is not a glitch, that is a theft. */
+  function dinoPreview(c, x, y, s, color, gear, pose) {
+    if (window.A && A.dino) {
+      var o = { color: color, pose: pose || 'idle', t: G.t, facing: 1 };
+      if (gear) o.gear = gear;
+      A.dino(c, x, y, s, o);
+      return;
+    }
     c.save(); c.fillStyle = color || C.dino;
     c.beginPath(); c.ellipse(x, y - s * .3, s * .32, s * .3, 0, 0, 7); c.fill(); c.restore();
   }
@@ -48,13 +59,15 @@
   }
 
   /* ------------------------------------------------------- scene: accesso */
-  var hatCache = {};      // account id -> equipped hat, read once per entry
+  var lookCache = {};     // account id -> its OWN look buffer, read once per entry
 
   G.scene('accesso', {
     hud: false, back: false,
     enter: function () {
-      hatCache = {};
-      G.accounts.list().forEach(function (a) { hatCache[a.id] = (G.LS.get('dg.save.' + a.id, {}) || {}).hat || null; });
+      lookCache = {};
+      G.accounts.list().forEach(function (a) {
+        lookCache[a.id] = G.look(G.LS.get('dg.save.' + a.id, {}) || {}, {});
+      });
       var n = G.accounts.list().length;
       setTimeout(function () {
         if (G.current !== 'accesso') return;
@@ -78,7 +91,7 @@
         if (window.A && A.panel) A.panel(c, x, y + wob, cw, ch, { r: 28 });
         else { c.fillStyle = C.cream; G.roundRect(c, x, y + wob, cw, ch, 28); c.fill(); }
         c.restore();
-        dinoPreview(c, x + cw / 2, y + wob + 236, 176, a.color, hatCache[a.id] || null);
+        dinoPreview(c, x + cw / 2, y + wob + 236, 176, a.color, lookCache[a.id] || null);
         G.text(a.name, x + cw / 2, y + wob + 282, { size: 34, color: C.ink, maxWidth: cw - 26 });
         // age badge
         c.save();
@@ -138,13 +151,13 @@
   });
 
   /* ------------------------------------------------------- scene: segreto */
-  var sg = { id: null, taps: [], shake: 0, fails: 0, hat: null };
+  var sg = { id: null, taps: [], shake: 0, fails: 0, look: null };
 
   G.scene('segreto', {
     hud: false, back: false,
     enter: function (p) {
       sg.id = p && p.id; sg.taps = []; sg.shake = 0; sg.fails = 0;
-      sg.hat = sg.id ? ((G.LS.get('dg.save.' + sg.id, {}) || {}).hat || null) : null;
+      sg.look = sg.id ? G.look(G.LS.get('dg.save.' + sg.id, {}) || {}, {}) : null;
       var a = G.accounts.byId(sg.id);
       setTimeout(function () {
         if (G.current !== 'segreto') return;
@@ -157,7 +170,7 @@
       if (!a) { G.go('accesso'); return; }
       backdrop(c, null);
 
-      dinoPreview(c, 250, 470, 250, a.color, sg.hat, sg.shake > 0 ? 'think' : 'idle');
+      dinoPreview(c, 250, 470, 250, a.color, sg.look, sg.shake > 0 ? 'think' : 'idle');
       G.text('Ciao ' + a.name + '!', 250, 200, { size: 52, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 10 });
       G.text('Tocca il tuo segreto', 250, 258, { size: 30, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 8, weight: 700 });
 
@@ -409,7 +422,7 @@
       c.restore();
 
       if (a) {
-        dinoPreview(c, 260, 366, 210, a.color, G.save.hat);
+        dinoPreview(c, 260, 366, 210, a.color);   // current player: A.dino reads the live save
         G.text(a.name, 260, 410, { size: 40, color: C.ink });
         G.text(a.level === 2 ? 'Grande (5-7 anni)' : 'Piccolo (3-4 anni)', 260, 452, { size: 24, color: '#7a6a58', weight: 700 });
         G.text('Frutti ' + Math.floor(G.save.fruits) + '   Stelline ' + Math.floor(G.save.stars), 260, 496, { size: 24, color: C.ink, weight: 800 });

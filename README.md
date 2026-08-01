@@ -8,9 +8,19 @@ in una giungla e si ferma in tre posti:
 | **La Radura dei Numeri** | conta, somma, sottrai — tutto con oggetti da contare a schermo | *Treasure MathStorm!* |
 | **I Fili Intrecciati** | unisci i pallini uguali senza incrociare i fili | *Flow Free* |
 | **Il Nido** | compri cespugli e nidi, producono frutti nel tempo, li raccogli | i gestionali/idle |
+| **Il Guardaroba** | vesti il tuo dino, e lui reagisce a quello che gli metti | i giochi di vestizione |
 
-I frutti si guadagnano giocando e si spendono al Nido. Le stelline comprano
-**cappellini** per il proprio dino: è quella la vera ricompensa.
+I frutti si guadagnano giocando e si spendono al Nido. Le stelline riempiono le
+**casse** del Guardaroba, dove si trovano cappelli, occhiali, papillon e fiocchi
+per il proprio dino: è quella la vera ricompensa.
+
+**Niente ha un prezzo.** I pezzi non si comprano: arrivano in casse che si
+aprono a mani nude, e una cassa che non è ancora pronta semplicemente non c'è —
+non è grigia, non ha un lucchetto. Il guardaroba non sa dire di no.
+
+E la ricompensa non è il pezzo, è la **reazione**: metti la cuffia e il dino si
+addormenta davvero, metti il cappello da mago e si mette a pensare. A tre anni
+la causa-effetto affidabile è la cosa che si ripete ottanta volte di fila.
 
 **Nessuna pubblicità, nessun acquisto, nessuna rete.** Funziona anche in aereo.
 E soprattutto: **non si perde mai.** Nessun timer, nessuna vita, nessuna
@@ -132,11 +142,15 @@ src/00-core.js      motore: mondo logico 1280×720, scene, UI a modo immediato,
                     audio sintetizzato, voce it-IT, salvataggi, effetti, HUD
 src/01-art.js       tutta la grafica procedurale (namespace A): dino, giungla,
                     frutti, uova, cappellini, forme
+src/01c-art-gear.js accessori indossabili (occhi, collo, coda), il catalogo
+                    unico con le reazioni, e G.look: cosa indossa un salvataggio
 src/02-cloud.js     sincronizzazione opzionale (inerte se non configurata)
-src/10-overworld.js la giungla: il dino cammina fra le tre postazioni
+src/10-overworld.js la giungla: il dino cammina fra le quattro postazioni
 src/20-conta.js     La Radura dei Numeri
 src/21-fili.js      I Fili Intrecciati (con generatore di griglie risolvibili)
-src/22-nido.js      Il Nido + negozio dei cappellini
+src/22-nido.js      Il Nido
+src/23-guardaroba.js Il Guardaroba: casse, baule dei giocattoli, specchio,
+                    ritratti, e il dino del fratello in sola lettura
 src/90-account.js   accesso, nuovo giocatore, segreto, impostazioni genitori
 src/99-boot.js      avvio, schermo intero, wake lock
 ```

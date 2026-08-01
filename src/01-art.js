@@ -136,6 +136,15 @@
     var dk = _shade(col, -48), lt = _shade(col, 32);
     var lw = _lw(s), u = s, i, a;
 
+    /* What this dino is wearing (see G.look in 01c-art-gear.js).
+       Contract: a caller that specifies appearance must specify ALL of it. If
+       `gear` is given we use it; if only `hat` is given the caller is drawing
+       somebody else's dino, so we add nothing; only when neither is given do we
+       fall back to the current save. That is what keeps the "Chi gioca?" cards
+       from putting the current player's glasses on every sibling. */
+    var L = o.gear || ((o.hat === undefined && typeof G.look === 'function') ? G.look() : null);
+    var hatId = o.hat !== undefined ? o.hat : (L ? L.testa : null);
+
     /* ---- pose parameters */
     var breath = Math.sin(t * 2.1) * 0.010;
     var bob = 0, hop = 0, tailA = Math.sin(t * 1.5) * 0.12, tilt = 0;
@@ -229,6 +238,22 @@
     }
     _shape(ctx, _shade(col, -22), lw * 0.9);
 
+    /* ---- tail gear: sits on the tail, behind the body, and rides the wag.
+       Drawn at p = 0.70 along the quadratic, where the tail still has some
+       thickness, rotated onto the curve's tangent so it never floats. */
+    if (L && L.coda && A.gear) {
+      var tp = 0.70, tq = 1 - tp;
+      var tcx = tq * tq * (-0.20 * u) + 2 * tq * tp * (-0.44 * u) + tp * tp * tipx;
+      var tcy = tq * tq * (byy - 0.11 * u) + 2 * tq * tp * (byy - 0.30 * u - tailA * 0.16 * u) + tp * tp * tipy;
+      var tdx = 2 * tq * (-0.24 * u) + 2 * tp * (tipx + 0.44 * u);
+      var tdy = 2 * tq * (-0.19 * u - tailA * 0.16 * u) + 2 * tp * (tipy - byy + 0.30 * u + tailA * 0.16 * u);
+      ctx.save();
+      ctx.translate(tcx, tcy);
+      ctx.rotate(Math.atan2(tdy, tdx));
+      A.gear(ctx, L.coda, 0, 0, u * 0.088, { lw: lw });
+      ctx.restore();
+    }
+
     /* ---- far limbs (darker, read as depth) */
     var hipY = byy + 0.16 * u;
     var bLegX = -0.055 * u - (walking ? legPh * 0.10 * u : 0);
@@ -265,6 +290,15 @@
     _ell(ctx, -0.03 * u, byy - bry * 0.66, brx * 0.42, bry * 0.20, -0.25);
     ctx.fillStyle = lt; ctx.fill();
     ctx.globalAlpha = 1;
+
+    /* ---- neck gear: anchored to the tilt pivot, NOT to the chest ellipse.
+       pvy carries bob plus half the breath while bry carries the whole breath,
+       so anchoring on the chest opens a gap in time with the breathing.
+       Drawn before the near limbs on purpose: in 'happy' the raised arm passes
+       over it, which is where an arm belongs. */
+    if (L && L.collo && A.gear) {
+      A.gear(ctx, L.collo, 0.03 * u, pvy + hr * 0.30, u * 0.26, { lw: lw });
+    }
 
     /* ---- near limbs */
     var fLegX = 0.105 * u + (walking ? legPh * 0.10 * u : 0);
@@ -329,11 +363,18 @@
       ctx.stroke();
     }
 
-    /* ---- hat (rides with the head tilt) */
-    if (o.hat) {
+    /* ---- eye gear + hat (both ride with the head tilt, drawn pre-tilt) */
+    if (L && L.occhi && A.gear) {
       ctx.save();
       ctx.translate(pvx, pvy); ctx.rotate(tilt); ctx.translate(-pvx, -pvy);
-      A.hat(ctx, hx + hr * 0.06, hy - hr * 0.86, hr * 1.95, o.hat);
+      // midpoint of the two pupils: they sit at hx-0.24hr and hx+0.46hr
+      A.gear(ctx, L.occhi, hx + hr * 0.11, hy - hr * 0.18, hr * 0.70, { eyes: eyes, lw: lw });
+      ctx.restore();
+    }
+    if (hatId) {
+      ctx.save();
+      ctx.translate(pvx, pvy); ctx.rotate(tilt); ctx.translate(-pvx, -pvy);
+      A.hat(ctx, hx + hr * 0.06, hy - hr * 0.86, hr * 1.95, hatId);
       ctx.restore();
     }
 

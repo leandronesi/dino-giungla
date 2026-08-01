@@ -134,13 +134,20 @@ garantisce l'esistenza di questi rami; **ogni modulo usa solo il proprio ramo**:
 G.save.fruits   // numero (gestito dal core)
 G.save.stars    // numero (gestito dal core)
 G.save.mute     // bool
-G.save.hat      // id cappellino equipaggiato o null
-G.save.hats     // array di id cappellini posseduti
+G.save.hat      // id cappellino equipaggiato o null   — di 'guardaroba'
+G.save.hats     // array di id cappellini posseduti    — di 'guardaroba'
 G.save.conta    // ramo libero del minigioco "Conta i Frutti"
 G.save.fili     // ramo libero del minigioco "Fili Intrecciati"
 G.save.nido     // ramo libero della base "Il Nido"
+G.save.guardaroba // ramo libero del "Guardaroba" (+ possiede hat/hats)
 G.save.seen     // { nomeScena: bool } — per i tutorial una-tantum
 ```
+
+**Le stelline sono monotone.** Da quando il negozio è uscito dal Nido, in tutto
+`src/` **nessuno decrementa `G.save.stars`**: salgono e basta, e servono a
+riempire le casse del Guardaroba (soglie in `starsFor()`). Se un domani si
+reintroduce un posto dove spenderle, le soglie delle casse diventano bugiarde e
+vanno ritarate. È una decisione di prodotto, non un caso.
 Sono `{}` alla prima partita: inizializza le tue chiavi con `??=` dentro `enter()`.
 
 ---
@@ -170,10 +177,38 @@ A.panel(ctx, x, y, w, h, o)   // cartello di legno (x,y = angolo alto-sx)
 //   o = { color, border, r, tint }
 A.sign(ctx, x, y, w, h, title) // cartello con titolo
 A.star(ctx, x, y, r, color)
-A.hat(ctx, x, y, s, id)       // disegna un cappello isolato (per il negozio)
+A.hat(ctx, x, y, s, id)       // disegna un cappello isolato (per le vetrine)
 A.HATS                        // [{id, name, price, draw}] catalogo cappellini
 A.SHAPES                      // funzioni per le forme dei fili (vedi 21)
 ```
+
+## Accessori indossabili (`src/01c-art-gear.js`)
+
+```js
+A.SLOTS                  // ['testa', 'occhi', 'collo', 'coda']
+A.GEAR                   // catalogo unico: [{id, slot, name, pose, say, draw}]
+A.gearOf(id)             // voce del catalogo, o null
+A.gear(ctx, id, x, y, s, o)   // disegna un pezzo non-cappello
+G.look(save, out)        // cosa indossa QUEL salvataggio -> {testa, occhi, collo, coda}
+```
+
+`pose` e `say` sono la **reazione**: metti la cuffia e il dino si addormenta
+davvero. È la ricompensa principale del Guardaroba e costa zero arte, perché le
+pose esistono già in `A.dino`.
+
+Tre regole dure:
+
+1. **Chi passa `gear` o `hat` ad `A.dino` deve passare tutto l'aspetto.** Se non
+   passi nulla, `A.dino` risolve da solo il salvataggio corrente. Se passi solo
+   `hat`, stai disegnando il dino di qualcun altro e non viene aggiunto niente.
+2. **Chi disegna più di un dino nello stesso frame DEVE passare a `G.look` un
+   buffer `out` proprio.** Lo fanno la schermata "Chi gioca?", i ritratti e la
+   finestrella del fratello. Senza, tutti finiscono vestiti come l'ultimo
+   risolto — e per un bimbo di 3 anni non è un glitch, è un furto.
+3. **Nessun pezzo può contenere una lettera, una cifra o un logo.** Tutto ciò che
+   `A.dino` disegna sta dentro `ctx.scale(facing, 1)` e si specchia quando il
+   dino cammina a sinistra. Le forme simmetriche reggono, i glifi no (vedi le
+   `z` del sonno, disegnate fuori dalla trasformazione).
 
 ---
 
@@ -184,7 +219,8 @@ A.SHAPES                      // funzioni per le forme dei fili (vedi 21)
 | `src/10-overworld.js` | `giungla` | mappa con il dino che cammina fra i nodi |
 | `src/20-conta.js` | `conta` | "La Radura dei Numeri" — matematica |
 | `src/21-fili.js` | `fili` | "I Fili Intrecciati" — flow/pallini |
-| `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon + negozio cappellini |
+| `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
+| `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
 
 `src/90-boot.js` (già scritto) gestisce: scelta profilo, menu genitori, avvio.
 

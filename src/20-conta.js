@@ -658,15 +658,20 @@
     });
   }
 
+  /* `q` can have moved on between the frame that declared these buttons and the
+     frame that handles the tap: the UI is immediate mode with one frame of lag
+     (uiHot = uiRects at the swap), and the 'more' and 'touch' questions carry
+     no options at all. Touching an answer at the exact moment the round changes
+     used to throw here. */
   function ansGeom() {
-    var n = q.options.length;
+    var n = (q && q.options) ? q.options.length : 3;
     var bw = n === 3 ? 250 : 220, bh = n === 3 ? 156 : 152, gap = n === 3 ? 46 : 30;
     return { n: n, w: bw, h: bh, gap: gap, x0: (G.W - (n * bw + (n - 1) * gap)) / 2, y: 538 };
   }
 
   function ansTap(i, val) {
     return function () {
-      if (lock > 0 || phase !== 'play') return;
+      if (lock > 0 || phase !== 'play' || !q || !q.options) return;
       var g = ansGeom();
       if (val === q.answer) correct(g.x0 + i * (g.w + g.gap) + g.w / 2, g.y + g.h / 2, null);
       else wrong(i);
@@ -720,6 +725,25 @@
       c.beginPath(); c.arc(x, 380, 14, 0, 6.3); c.fill();
     }
 
+    /* A present waiting gets a third button — and only then, so the two-button
+       layout the children already know stays exactly as it was. At three the
+       reward should not have a journey in front of it. */
+    var crate = (typeof G.crates === 'function') ? G.crates() : 0;
+    if (crate > 0) {
+      G.ui.button({
+        id: 'again', x: 240, y: 404, w: 260, h: 132, label: 'Continua',
+        color: C.leaf, fontSize: 32, onTap: function () { newRound(); }
+      });
+      G.ui.button({
+        id: 'crate', x: 519, y: 404, w: 260, h: 132, label: 'Apri la cassa!',
+        color: C.plum, fontSize: 27, onTap: function () { G.go('guardaroba'); }
+      });
+      G.ui.button({
+        id: 'leave', x: 798, y: 404, w: 260, h: 132, label: 'Torna alla giungla',
+        color: C.tangerine, fontSize: 25, onTap: function () { G.home(); }
+      });
+      return;
+    }
     G.ui.button({
       id: 'again', x: 280, y: 404, w: 340, h: 132, label: 'Continua',
       color: C.leaf, fontSize: 40, onTap: function () { newRound(); }

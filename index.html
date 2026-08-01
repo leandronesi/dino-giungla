@@ -1039,6 +1039,15 @@ html, body {
     var dk = _shade(col, -48), lt = _shade(col, 32);
     var lw = _lw(s), u = s, i, a;
 
+    /* What this dino is wearing (see G.look in 01c-art-gear.js).
+       Contract: a caller that specifies appearance must specify ALL of it. If
+       `gear` is given we use it; if only `hat` is given the caller is drawing
+       somebody else's dino, so we add nothing; only when neither is given do we
+       fall back to the current save. That is what keeps the "Chi gioca?" cards
+       from putting the current player's glasses on every sibling. */
+    var L = o.gear || ((o.hat === undefined && typeof G.look === 'function') ? G.look() : null);
+    var hatId = o.hat !== undefined ? o.hat : (L ? L.testa : null);
+
     /* ---- pose parameters */
     var breath = Math.sin(t * 2.1) * 0.010;
     var bob = 0, hop = 0, tailA = Math.sin(t * 1.5) * 0.12, tilt = 0;
@@ -1132,6 +1141,22 @@ html, body {
     }
     _shape(ctx, _shade(col, -22), lw * 0.9);
 
+    /* ---- tail gear: sits on the tail, behind the body, and rides the wag.
+       Drawn at p = 0.70 along the quadratic, where the tail still has some
+       thickness, rotated onto the curve's tangent so it never floats. */
+    if (L && L.coda && A.gear) {
+      var tp = 0.70, tq = 1 - tp;
+      var tcx = tq * tq * (-0.20 * u) + 2 * tq * tp * (-0.44 * u) + tp * tp * tipx;
+      var tcy = tq * tq * (byy - 0.11 * u) + 2 * tq * tp * (byy - 0.30 * u - tailA * 0.16 * u) + tp * tp * tipy;
+      var tdx = 2 * tq * (-0.24 * u) + 2 * tp * (tipx + 0.44 * u);
+      var tdy = 2 * tq * (-0.19 * u - tailA * 0.16 * u) + 2 * tp * (tipy - byy + 0.30 * u + tailA * 0.16 * u);
+      ctx.save();
+      ctx.translate(tcx, tcy);
+      ctx.rotate(Math.atan2(tdy, tdx));
+      A.gear(ctx, L.coda, 0, 0, u * 0.088, { lw: lw });
+      ctx.restore();
+    }
+
     /* ---- far limbs (darker, read as depth) */
     var hipY = byy + 0.16 * u;
     var bLegX = -0.055 * u - (walking ? legPh * 0.10 * u : 0);
@@ -1168,6 +1193,15 @@ html, body {
     _ell(ctx, -0.03 * u, byy - bry * 0.66, brx * 0.42, bry * 0.20, -0.25);
     ctx.fillStyle = lt; ctx.fill();
     ctx.globalAlpha = 1;
+
+    /* ---- neck gear: anchored to the tilt pivot, NOT to the chest ellipse.
+       pvy carries bob plus half the breath while bry carries the whole breath,
+       so anchoring on the chest opens a gap in time with the breathing.
+       Drawn before the near limbs on purpose: in 'happy' the raised arm passes
+       over it, which is where an arm belongs. */
+    if (L && L.collo && A.gear) {
+      A.gear(ctx, L.collo, 0.03 * u, pvy + hr * 0.30, u * 0.26, { lw: lw });
+    }
 
     /* ---- near limbs */
     var fLegX = 0.105 * u + (walking ? legPh * 0.10 * u : 0);
@@ -1232,11 +1266,18 @@ html, body {
       ctx.stroke();
     }
 
-    /* ---- hat (rides with the head tilt) */
-    if (o.hat) {
+    /* ---- eye gear + hat (both ride with the head tilt, drawn pre-tilt) */
+    if (L && L.occhi && A.gear) {
       ctx.save();
       ctx.translate(pvx, pvy); ctx.rotate(tilt); ctx.translate(-pvx, -pvy);
-      A.hat(ctx, hx + hr * 0.06, hy - hr * 0.86, hr * 1.95, o.hat);
+      // midpoint of the two pupils: they sit at hx-0.24hr and hx+0.46hr
+      A.gear(ctx, L.occhi, hx + hr * 0.11, hy - hr * 0.18, hr * 0.70, { eyes: eyes, lw: lw });
+      ctx.restore();
+    }
+    if (hatId) {
+      ctx.save();
+      ctx.translate(pvx, pvy); ctx.rotate(tilt); ctx.translate(-pvx, -pvy);
+      A.hat(ctx, hx + hr * 0.06, hy - hr * 0.86, hr * 1.95, hatId);
       ctx.restore();
     }
 
@@ -2083,6 +2124,267 @@ html, body {
 })();
 
 
+/* ==================== 01c-art-gear.js ==================== */
+/* Dino Giungla — wearable gear (namespace `A`, extends 01-art.js).
+   Four slots: `testa` (the eight hats of 01b-art-world.js), `occhi`, `collo`,
+   `coda`. The catalogue below is the single list the wardrobe reads.
+
+   Every entry carries a REACTION — {pose, say} — and that is the whole point of
+   the wardrobe: put the nightcap on and the dino really falls asleep, put the
+   wizard hat on and he really starts thinking. The five poses already exist in
+   A.dino, so the strongest reward in the game costs no drawing at all.
+
+   HARD RULE for painters: never draw a letter, a digit or a logo. Everything
+   here is rendered inside A.dino's ctx.scale(face, 1), so it mirrors when the
+   dino walks left. Symmetric shapes survive that; glyphs would come out
+   backwards. See the sleeping z's in 01-art.js, drawn outside the transform.
+
+   Ink is the dino's warm brown, not the world's green-black: these pieces sit
+   ON the animal, and 01b's darker outline reads as a hole at small sizes. */
+(function () {
+  'use strict';
+
+  var G = window.G || {};
+  var C = G.C || {};
+  var A = window.A || (window.A = {});
+  var INK = C.ink || '#2b1d12';
+  var TAU = 6.2831853;
+
+  /* 01-art.js keeps its primitives private inside its own IIFE, so these are
+     deliberate local copies — the alternative is publishing internals on A. */
+  function _shade(col, amt) { return G.shade ? G.shade(col, amt) : col; }
+  function _ell(c, x, y, rx, ry, rot) {
+    rx = Math.max(0.2, rx); ry = Math.max(0.2, ry); rot = rot || 0;
+    c.beginPath();
+    c.moveTo(x + rx * Math.cos(rot), y + rx * Math.sin(rot));
+    c.ellipse(x, y, rx, ry, rot, 0, TAU);
+  }
+  function _shape(c, col, lw) {
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    if (lw > 0) { c.strokeStyle = INK; c.lineWidth = lw * 2; c.stroke(); }
+    c.fillStyle = col; c.fill();
+  }
+  function _gloss(c, x, y, rx, ry, rot, a) {
+    c.save(); c.globalAlpha = a === undefined ? 0.30 : a;
+    _ell(c, x, y, rx, ry, rot); c.fillStyle = '#ffffff'; c.fill();
+    c.restore();
+  }
+
+  /* ============================================================ EYES (occhi) */
+  /* (x,y) = midpoint between the pupils, s = eye spacing. The head is drawn in
+     three quarters, so the far lens is smaller and sits a touch higher.
+     Lenses are ALWAYS translucent: in the 'happy' pose A.dino fills the eyes
+     with a solid star, and an opaque lens would erase the face at the exact
+     moment of celebration. */
+  function lensAlpha(o) { return (o && o.eyes === 'star') ? 0.38 : 0.55; }
+
+  function frame(c, x, y, s, o, tint) {
+    var r1 = s * 0.41, r2 = s * 0.44, lw = s * 0.11;
+    c.strokeStyle = tint; c.lineWidth = lw; c.lineCap = 'round';
+    c.beginPath();                                    // bridge
+    c.moveTo(x - s * 0.10, y - s * 0.06);
+    c.quadraticCurveTo(x, y - s * 0.16, x + s * 0.12, y - s * 0.04);
+    c.stroke();
+    c.beginPath();                                    // temple arm, near side only
+    c.moveTo(x + s * 0.62, y - s * 0.02);
+    c.lineTo(x + s * 0.86, y - s * 0.16);
+    c.stroke();
+    return { r1: r1, r2: r2, lw: lw };
+  }
+
+  function gOcchialini(c, x, y, s, o) {
+    var tint = _shade(C.blueberry || '#4d80e4', -30);
+    var f = frame(c, x, y, s, o, tint);
+    c.save();
+    c.globalAlpha = lensAlpha(o);
+    _ell(c, x - s * 0.50, y - s * 0.03, f.r1, f.r1 * 0.78, 0);
+    c.fillStyle = '#cfe6f5'; c.fill();
+    _ell(c, x + s * 0.50, y + s * 0.01, f.r2, f.r2 * 0.94, 0);
+    c.fillStyle = '#cfe6f5'; c.fill();
+    c.restore();
+    c.strokeStyle = tint; c.lineWidth = f.lw;
+    _ell(c, x - s * 0.50, y - s * 0.03, f.r1, f.r1 * 0.78, 0); c.stroke();
+    _ell(c, x + s * 0.50, y + s * 0.01, f.r2, f.r2 * 0.94, 0); c.stroke();
+    _gloss(c, x + s * 0.40, y - s * 0.14, s * 0.15, s * 0.07, -0.6, 0.55);
+  }
+
+  function gSole(c, x, y, s, o) {
+    var tint = '#2f2a34';
+    var f = frame(c, x, y, s, o, tint);
+    c.save();
+    c.globalAlpha = lensAlpha(o) + 0.28;
+    _ell(c, x - s * 0.50, y - s * 0.03, f.r1, f.r1 * 0.78, 0);
+    c.fillStyle = '#3a3550'; c.fill();
+    _ell(c, x + s * 0.50, y + s * 0.01, f.r2, f.r2 * 0.94, 0);
+    c.fillStyle = '#3a3550'; c.fill();
+    c.restore();
+    c.strokeStyle = tint; c.lineWidth = f.lw;
+    _ell(c, x - s * 0.50, y - s * 0.03, f.r1, f.r1 * 0.78, 0); c.stroke();
+    _ell(c, x + s * 0.50, y + s * 0.01, f.r2, f.r2 * 0.94, 0); c.stroke();
+    c.save();                                          // diagonal flash
+    c.globalAlpha = 0.5; c.strokeStyle = '#ffffff'; c.lineWidth = s * 0.10;
+    c.beginPath();
+    c.moveTo(x + s * 0.34, y + s * 0.20); c.lineTo(x + s * 0.62, y - s * 0.20);
+    c.stroke();
+    c.restore();
+  }
+
+  /* =========================================================== NECK (collo) */
+  /* (x,y) = the hollow of the throat, s = full width. Front pieces only: a
+     scarf that wraps round the neck would need two z-positions on a silhouette
+     that is ONE fused path (01-art.js), and costs more than this whole file. */
+  function gPapillon(c, x, y, s, o) {
+    var col = C.berry || '#e8536b', lw = s * 0.09;
+    var w = s * 0.50, h = s * 0.30;
+    c.beginPath();
+    c.moveTo(x, y);
+    c.quadraticCurveTo(x - w, y - h, x - w * 0.92, y);
+    c.quadraticCurveTo(x - w, y + h, x, y);
+    c.quadraticCurveTo(x + w, y - h, x + w * 0.92, y);
+    c.quadraticCurveTo(x + w, y + h, x, y);
+    c.closePath();
+    _shape(c, col, lw);
+    _ell(c, x, y, s * 0.13, s * 0.15, 0);
+    _shape(c, _shade(col, -26), lw * 0.9);
+  }
+
+  function gMedaglia(c, x, y, s, o) {
+    var lw = s * 0.085, r = s * 0.26;
+    c.beginPath();                                     // ribbon, a shallow V
+    c.moveTo(x - s * 0.30, y - s * 0.22);
+    c.lineTo(x, y + s * 0.16);
+    c.lineTo(x + s * 0.30, y - s * 0.22);
+    c.lineTo(x + s * 0.16, y - s * 0.26);
+    c.lineTo(x, y - s * 0.02);
+    c.lineTo(x - s * 0.16, y - s * 0.26);
+    c.closePath();
+    _shape(c, C.blueberry || '#4d80e4', lw);
+    _ell(c, x, y + s * 0.30, r, r, 0);
+    _shape(c, C.sun || '#ffd75e', lw);
+    if (G.starPath) {
+      c.fillStyle = _shade(C.sun || '#ffd75e', -46);
+      G.starPath(c, x, y + s * 0.30, r * 0.56); c.fill();
+    }
+    _gloss(c, x - r * 0.34, y + s * 0.30 - r * 0.36, r * 0.30, r * 0.16, -0.7, 0.42);
+  }
+
+  /* =========================================================== TAIL (coda) */
+  /* Drawn in a space the caller has already translated to the point on the tail
+     and rotated onto its tangent, so both pieces ride the tail wag for free.
+     s = the tail's thickness there. */
+  function gFiocco(c, x, y, s, o) {
+    var col = C.pinkPop || '#ff6fae', lw = s * 0.16;
+    var w = s * 0.86, h = s * 0.56;
+    c.beginPath();
+    c.moveTo(x, y);
+    c.quadraticCurveTo(x - w * 0.5, y - h, x - w, y - h * 0.22);
+    c.quadraticCurveTo(x - w * 0.7, y + h * 0.5, x, y);
+    c.quadraticCurveTo(x + w * 0.5, y - h, x + w, y - h * 0.22);
+    c.quadraticCurveTo(x + w * 0.7, y + h * 0.5, x, y);
+    c.closePath();
+    _shape(c, col, lw);
+    _ell(c, x, y, s * 0.22, s * 0.24, 0);
+    _shape(c, _shade(col, -28), lw * 0.85);
+  }
+
+  function gAnellino(c, x, y, s, o) {
+    var col = C.mint || '#38d9a9', lw = s * 0.15;
+    _ell(c, x, y, s * 0.78, s * 0.92, 0);
+    _shape(c, col, lw);
+    c.save();                                          // inner shadow gives it volume
+    c.globalAlpha = 0.30;
+    _ell(c, x, y, s * 0.50, s * 0.62, 0);
+    c.fillStyle = INK; c.fill();
+    c.restore();
+    _gloss(c, x - s * 0.34, y - s * 0.40, s * 0.20, s * 0.12, -0.5, 0.5);
+  }
+
+  var PAINT = {
+    occhialini: gOcchialini, sole: gSole,
+    papillon: gPapillon, medaglia: gMedaglia,
+    fiocco: gFiocco, anellino: gAnellino
+  };
+
+  /* Draw one non-hat piece. Hats keep going through A.hat: they have their own
+     anchor and their own scale, and their art is not touched by this file. */
+  A.gear = function (ctx, id, x, y, s, o) {
+    var f = id && PAINT[id];
+    if (!f) return;
+    ctx.save();
+    f(ctx, x, y, s > 0 ? s : 40, o || {});
+    ctx.restore();
+  };
+
+  /* ============================================================== CATALOGUE */
+  /* `pose` and `say` are the reaction. Order here is the order of the shelves;
+     the order pieces are GIVEN is CRATE_ORDER in 23-guardaroba.js, which is
+     sorted by how strong the reaction is, not by slot. */
+  var HAT_REACT = {
+    berretto: { pose: 'walk', say: 'Andiamo!' },
+    corona: { pose: 'happy', say: 'Sono il re della giungla!' },
+    fiore: { pose: 'idle', say: 'Che profumo!' },
+    esploratore: { pose: 'walk', say: 'In marcia!' },
+    cuffia: { pose: 'sleep', say: 'Buonanotte...' },
+    pirata: { pose: 'happy', say: 'Arrembaggio!' },
+    cilindro: { pose: 'idle', say: 'Che eleganza!' },
+    mago: { pose: 'think', say: 'Abracadabra!' }
+  };
+
+  A.GEAR = [];
+  (A.HATS || []).forEach(function (h) {
+    var r = HAT_REACT[h.id] || { pose: 'happy', say: 'Bello!' };
+    A.GEAR.push({
+      id: h.id, slot: 'testa', name: h.name, pose: r.pose, say: r.say,
+      draw: function (c, x, y, s) { A.hat(c, x, y, s * 0.86, h.id); }
+    });
+  });
+
+  [
+    { id: 'occhialini', slot: 'occhi', name: 'Occhialini', pose: 'think', say: 'Ora vedo tutto!' },
+    { id: 'sole', slot: 'occhi', name: 'Occhiali da sole', pose: 'happy', say: 'Che stile!' },
+    { id: 'papillon', slot: 'collo', name: 'Papillon', pose: 'idle', say: 'Elegantissimo!' },
+    { id: 'medaglia', slot: 'collo', name: 'Medaglia', pose: 'happy', say: 'Ho vinto!' },
+    { id: 'fiocco', slot: 'coda', name: 'Fiocco', pose: 'happy', say: 'Guarda la mia coda!' },
+    { id: 'anellino', slot: 'coda', name: 'Anellino', pose: 'walk', say: 'Tintinnaaa!' }
+  ].forEach(function (g) {
+    var sc = g.slot === 'occhi' ? 0.62 : g.slot === 'collo' ? 0.70 : 0.52;
+    g.draw = function (c, x, y, s) { A.gear(c, g.id, x, y, s * sc, {}); };
+    A.GEAR.push(g);
+  });
+
+  var BY_ID = {};
+  A.GEAR.forEach(function (g) { BY_ID[g.id] = g; });
+  A.gearOf = function (id) { return (id && BY_ID[id]) || null; };
+  A.SLOTS = ['testa', 'occhi', 'collo', 'coda'];
+
+  /* ================================================================== LOOK */
+  /* What a given save is WEARING. `testa` stays in save.hat so the eight hats
+     and every old save keep working untouched; the three new slots live in
+     save.guardaroba.gear.
+
+     PASS YOUR OWN `out` BUFFER whenever you draw more than one dino in a frame.
+     Three surfaces do: the "Chi gioca?" cards, the level-2 portraits, and the
+     brother's window. Without a private buffer they would all end up wearing
+     the look of whoever was resolved last — and to a three-year-old that is not
+     a glitch, that is his brother stealing his hat. */
+  var shared = { testa: null, occhi: null, collo: null, coda: null };
+
+  G.look = function (save, out) {
+    var s = save || G.save || {};
+    var gr = s.guardaroba;
+    var g = (gr && typeof gr.gear === 'object' && gr.gear) || null;
+    var o = out || shared;
+    o.testa = typeof s.hat === 'string' ? s.hat : null;
+    o.occhi = (g && typeof g.occhi === 'string') ? g.occhi : null;
+    o.collo = (g && typeof g.collo === 'string') ? g.collo : null;
+    o.coda = (g && typeof g.coda === 'string') ? g.coda : null;
+    return o;
+  };
+
+  A._gear_ok = true;
+})();
+
+
 /* ==================== 02-cloud.js ==================== */
 /* Optional cloud save. Off by default: the game is fully playable offline.
    Set SYNC_URL to a tiny key/value endpoint (see server/worker.js in the repo)
@@ -2257,10 +2559,14 @@ html, body {
   /* ------------------------------------------------------------- stations */
   /* `go` is what the voice says to the little ones: the name alone is not an
      invitation, and each place needs its own article (alla / ai / al). */
+  /* `sway` is the phase of the idle wobble, so the signs never move in lockstep.
+     It used to be called `ph`, which drawStation() then overwrote with the
+     plaque height — after one frame every sign swayed with the same phase. */
   var STATIONS = [
-    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.175, ph: 0.0 },
-    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.505, ph: 1.9 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.860, ph: 3.7 }
+    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.175, sway: 0.0 },
+    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.505, sway: 1.9 },
+    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.655, sway: 5.5 },
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.860, sway: 3.7 }
   ];
 
   /* How much has been done in each place, for the badge the big one gets.
@@ -2488,7 +2794,38 @@ html, body {
     c.restore();
   }
 
-  var ICONS = { conta: iconConta, fili: iconFili, nido: iconNido };
+  /* A chest with the lid open and something bright coming out of it. Deliberately
+     not a wardrobe: at r = 74 a cupboard is a brown rectangle, a chest is a
+     silhouette even a three-year-old reads. */
+  function iconGuardaroba(c, cx, cy, r) {
+    var w = r * 0.78, by = cy + r * 0.42;
+    c.save();
+    c.fillStyle = G.C.sun;                       // glow from inside
+    c.globalAlpha = 0.55;
+    c.beginPath(); c.ellipse(cx, by - r * 0.34, w * 0.86, r * 0.40, 0, 0, 7); c.fill();
+    c.globalAlpha = 1;
+    c.fillStyle = G.C.barkDark;                  // open lid, tipped back
+    c.beginPath();
+    c.moveTo(cx - w, by - r * 0.30);
+    c.quadraticCurveTo(cx, by - r * 1.16, cx + w, by - r * 0.52);
+    c.lineTo(cx + w * 0.86, by - r * 0.30);
+    c.quadraticCurveTo(cx, by - r * 0.86, cx - w * 0.86, by - r * 0.14);
+    c.closePath(); c.fill();
+    c.fillStyle = G.C.bark;                      // body
+    G.roundRect(c, cx - w, by - r * 0.28, w * 2, r * 0.62, r * 0.10); c.fill();
+    c.fillStyle = G.C.barkDark;
+    c.fillRect(cx - w, by - r * 0.04, w * 2, r * 0.13);
+    c.fillStyle = G.C.sun;                       // clasp
+    c.beginPath(); c.arc(cx, by + r * 0.03, r * 0.13, 0, 7); c.fill();
+    if (G.starPath) {                            // a star escaping the chest
+      c.fillStyle = G.C.sun;
+      G.starPath(c, cx + r * 0.44, by - r * 0.74, r * 0.20); c.fill();
+      G.starPath(c, cx - r * 0.30, by - r * 0.60, r * 0.13); c.fill();
+    }
+    c.restore();
+  }
+
+  var ICONS = { conta: iconConta, fili: iconFili, nido: iconNido, guardaroba: iconGuardaroba };
 
   function drawBadge(c, x, y, n) {
     c.save();
@@ -2500,6 +2837,30 @@ html, body {
     c.stroke();
     G.starIcon(c, x - 23, y, 15);
     G.text(n > 99 ? '99+' : String(n), x + 17, y + 1, { ctx: c, size: 27, color: G.C.ink });
+    c.restore();
+  }
+
+  /* A present waiting at the Guardaroba. This is the one badge the little one
+     gets too: he cannot read the number, but a thing that pulses on a sign
+     means "something for you is over there", and that he understands. */
+  function drawCrateBadge(c, x, y, n) {
+    var k = 1 + Math.sin(G.t * 4) * 0.08;
+    c.save();
+    c.translate(x, y); c.scale(k, k); c.translate(-x, -y);
+    c.fillStyle = G.C.sun;
+    c.beginPath(); c.arc(x, y, 33, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(122,74,38,.55)'; c.lineWidth = 3; c.stroke();
+    c.fillStyle = G.C.barkDark;
+    G.roundRect(c, x - 17, y - 12, 34, 22, 4); c.fill();
+    c.fillStyle = G.C.bark;
+    G.roundRect(c, x - 15, y - 14, 30, 9, 3); c.fill();
+    c.fillStyle = G.C.sun;
+    c.beginPath(); c.arc(x, y - 2, 4, 0, 7); c.fill();
+    if (n > 1) {
+      G.text(String(Math.min(9, n)), x + 22, y + 18, {
+        ctx: c, size: 24, color: G.C.ink, stroke: 'rgba(255,246,224,.95)', strokeWidth: 6
+      });
+    }
     c.restore();
   }
 
@@ -2521,7 +2882,7 @@ html, body {
 
     c.save();
     c.translate(cx, base);
-    c.rotate(Math.sin(G.t * 0.8 + st.ph) * 0.022);   // slow, gentle sway
+    c.rotate(Math.sin(G.t * 0.8 + st.sway) * 0.022);   // slow, gentle sway
     c.translate(-cx, -base);
 
     // ground contact
@@ -2540,7 +2901,7 @@ html, body {
     // the little ones get a soft halo that keeps saying "tap me"
     if (!big) {
       c.fillStyle = G.C.sun;
-      c.globalAlpha = 0.14 + 0.10 * Math.sin(G.t * 2 + st.ph);
+      c.globalAlpha = 0.14 + 0.10 * Math.sin(G.t * 2 + st.sway);
       c.beginPath(); c.arc(cx, cy, r + 20, 0, 7); c.fill();
       c.globalAlpha = 1;
     }
@@ -2578,8 +2939,11 @@ html, body {
       ctx: c, size: fs, color: G.C.ink, maxWidth: pw - 26
     });
 
-    // the big one can also read how much he has done in each place
-    if (big) {
+    var waiting = (st.id === 'guardaroba' && typeof G.crates === 'function') ? G.crates() : 0;
+    if (waiting > 0) {
+      drawCrateBadge(c, cx + r * 0.78, cy - r * 0.80, waiting);
+    } else if (big) {
+      // the big one can also read how much he has done in each place
       var n = progressOf(st.branch);
       if (n > 0) drawBadge(c, cx + r * 0.78, cy - r * 0.80, n);
     }
@@ -3496,15 +3860,20 @@ html, body {
     });
   }
 
+  /* `q` can have moved on between the frame that declared these buttons and the
+     frame that handles the tap: the UI is immediate mode with one frame of lag
+     (uiHot = uiRects at the swap), and the 'more' and 'touch' questions carry
+     no options at all. Touching an answer at the exact moment the round changes
+     used to throw here. */
   function ansGeom() {
-    var n = q.options.length;
+    var n = (q && q.options) ? q.options.length : 3;
     var bw = n === 3 ? 250 : 220, bh = n === 3 ? 156 : 152, gap = n === 3 ? 46 : 30;
     return { n: n, w: bw, h: bh, gap: gap, x0: (G.W - (n * bw + (n - 1) * gap)) / 2, y: 538 };
   }
 
   function ansTap(i, val) {
     return function () {
-      if (lock > 0 || phase !== 'play') return;
+      if (lock > 0 || phase !== 'play' || !q || !q.options) return;
       var g = ansGeom();
       if (val === q.answer) correct(g.x0 + i * (g.w + g.gap) + g.w / 2, g.y + g.h / 2, null);
       else wrong(i);
@@ -3558,6 +3927,25 @@ html, body {
       c.beginPath(); c.arc(x, 380, 14, 0, 6.3); c.fill();
     }
 
+    /* A present waiting gets a third button — and only then, so the two-button
+       layout the children already know stays exactly as it was. At three the
+       reward should not have a journey in front of it. */
+    var crate = (typeof G.crates === 'function') ? G.crates() : 0;
+    if (crate > 0) {
+      G.ui.button({
+        id: 'again', x: 240, y: 404, w: 260, h: 132, label: 'Continua',
+        color: C.leaf, fontSize: 32, onTap: function () { newRound(); }
+      });
+      G.ui.button({
+        id: 'crate', x: 519, y: 404, w: 260, h: 132, label: 'Apri la cassa!',
+        color: C.plum, fontSize: 27, onTap: function () { G.go('guardaroba'); }
+      });
+      G.ui.button({
+        id: 'leave', x: 798, y: 404, w: 260, h: 132, label: 'Torna alla giungla',
+        color: C.tangerine, fontSize: 25, onTap: function () { G.home(); }
+      });
+      return;
+    }
     G.ui.button({
       id: 'again', x: 280, y: 404, w: 340, h: 132, label: 'Continua',
       color: C.leaf, fontSize: 40, onTap: function () { newRound(); }
@@ -4346,6 +4734,29 @@ html, body {
     G.text(perfect && G.level === 2 ? 'Perfetto!' : 'Evviva!', W / 2, py + 74, { size: 58, color: C.ink });
     var stars = (perfect && G.level === 2) ? 2 : 1, i;
     for (i = 0; i < stars; i++) G.starIcon(c, W / 2 + (i - (stars - 1) / 2) * 72, py + 146, 30);
+    /* Third button only when a present is actually waiting, so the two-button
+       panel the children already know is untouched the rest of the time. */
+    var crate = (typeof G.crates === 'function') ? G.crates() : 0;
+    if (crate > 0) {
+      G.ui.button({
+        x: px + 28, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Ancora!', color: C.leaf, fontSize: 30, iconSize: 48,
+        icon: iconRestart,
+        onTap: function () { newGrid(); }
+      });
+      G.ui.button({
+        x: px + 255, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Apri la cassa!', color: C.plum, fontSize: 24,
+        onTap: function () { G.go('guardaroba'); }
+      });
+      G.ui.button({
+        x: px + 482, y: py + 196, w: 210, h: 150, r: 32,
+        label: 'Giungla', color: C.tangerine, fontSize: 30, iconSize: 48,
+        icon: iconHouse,
+        onTap: function () { G.home(); }
+      });
+      return;
+    }
     G.ui.button({
       x: px + 42, y: py + 196, w: 300, h: 150, r: 32,
       label: 'Ancora!', color: C.leaf, fontSize: 38, iconSize: 56,
@@ -4473,10 +4884,13 @@ html, body {
 
 
 /* ==================== 22-nido.js ==================== */
-/* Il Nido — the clearing you look after, plus the hat shop.
+/* Il Nido — the clearing you look after: plots that grow fruit you tap to
+   collect.
 
-   Two tabs under the HUD: "Radura" (plots that grow fruit you tap to collect)
-   and "Cappellini" (stars -> hats, the real reward of the whole game).
+   This scene used to have a second tab with the hat shop in it. The shop left
+   for `guardaroba` (23-guardaroba.js), which owns G.save.hat / G.save.hats now;
+   nothing here ever touched the star counter anyway. Fruit is the only currency
+   spent in this file.
 
    Level 1 (3 years old): 3 plots, half price, no upgrades, one huge "Raccogli"
    button per plot so precision is never required, fat tap radius on the
@@ -4529,10 +4943,6 @@ html, body {
   /* The art library owns the house style; every call degrades to a decent
      local drawing so a half-loaded `A` can never blank the scene. */
   function A_(n) { return (typeof A !== 'undefined' && A && typeof A[n] === 'function') ? A[n] : null; }
-  function hatCatalog() {
-    var h = (typeof A !== 'undefined' && A) ? A.HATS : null;
-    return (h && h.length) ? h : null;
-  }
   function dinoColor() { return (G.account && G.account.color) || C.dino; }
 
   /* Stroke-then-fill a list of circles [x,y,r, x,y,r, ...] as one silhouette:
@@ -4552,13 +4962,6 @@ html, body {
     var f = A_('fruit');
     if (f) { f(c, x, y, r, kind || 'fragola'); return; }
     c.save(); c.fillStyle = C.berry;
-    c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
-  }
-  function starIcon(c, x, y, r) {
-    var f = A_('star');
-    if (f) { f(c, x, y, r); return; }
-    if (G.starIcon) { G.starIcon(c, x, y, r); return; }
-    c.save(); c.fillStyle = C.sun;
     c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.restore();
   }
   function board(c, x, y, w, h, r) {
@@ -4592,32 +4995,9 @@ html, body {
     c.stroke();
     c.restore();
   }
-  function arrowGlyph(c, x, y, s, dir) {
-    c.save();
-    c.strokeStyle = C.ink; c.lineWidth = Math.max(7, s * .32);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(x + dir * s * .32, y - s * .62);
-    c.lineTo(x - dir * s * .30, y);
-    c.lineTo(x + dir * s * .32, y + s * .62);
-    c.stroke();
-    c.restore();
-  }
-  function checkBadge(c, x, y, r) {
-    c.save();
-    c.fillStyle = C.leafDark; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
-    c.strokeStyle = '#ffffff'; c.lineWidth = Math.max(4, r * .30);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(x - r * .44, y + r * .02);
-    c.lineTo(x - r * .10, y + r * .40);
-    c.lineTo(x + r * .48, y - r * .40);
-    c.stroke();
-    c.restore();
-  }
-
   /* -------------------------------------------------------------- save shape */
-  /* Only G.save.nido (plus the hats branch the contract hands to this scene).
+  /* Only G.save.nido. The hats used to live here too, back when this scene also
+     housed the shop; they belong to `guardaroba` now (see 23-guardaroba.js).
      Anything missing, stale or of the wrong type is rebuilt, never trusted. */
   function bank() {
     G.save.nido ??= {};
@@ -4637,35 +5017,18 @@ html, body {
       it.chicks = G.clamp(Math.round(num(it.chicks, 0)), 0, MAX_CHICKS);
     });
     sv.lastSeen = num(sv.lastSeen, 0);
-    sv.page = G.clamp(Math.round(num(sv.page, 0)), 0, 30);
-    G.save.hats ??= [];
-    if (!Array.isArray(G.save.hats)) G.save.hats = [];
-    if (typeof G.save.hat !== 'string') G.save.hat = null;
     G.save.seen ??= {};
     if (!G.save.seen || typeof G.save.seen !== 'object') G.save.seen = {};
     return sv;
   }
-  function starsOwned() { return Math.max(0, Math.floor(num(G.save.stars, 0))); }
   function fruitsOwned() { return Math.max(0, Math.floor(num(G.save.fruits, 0))); }
-
-  /* Hats are the one place allowed to touch the star counter by hand. */
-  function spendStars(n) {
-    n = Math.round(n);
-    if (starsOwned() < n) return false;
-    G.save.stars = starsOwned() - n;
-    G.saveNow();
-    return true;
-  }
 
   /* ------------------------------------------------------------ scene state */
   var S = {
-    tab: 'radura',
     bub: {},          // def id -> [{x, y, v, ph}]
     chicks: [],       // {x: -1..1, dir, ph, sp}
     pet: {},          // def id -> petting cooldown left
     pop: {},          // def id -> squash animation 1 -> 0
-    page: 0,
-    tryId: null, tryT: 0,
     gift: false,
     idle: 0, hintT: 0, hello: 0, saveT: 0
   };
@@ -4678,8 +5041,8 @@ html, body {
     if (LClevel !== G.level) {
       LClevel = G.level;
       LC = G.level === 2
-        ? { n: 5, w: 232, gap: 16, x0: 28,  bY: 516, bH: 112, iY: 664, bubR: 50, tapK: 1.06, perPage: 4, cardW: 190, cardGap: 14 }
-        : { n: 3, w: 340, gap: 32, x0: 98,  bY: 508, bH: 132, iY: 684, bubR: 62, tapK: 1.30, perPage: 3, cardW: 256, cardGap: 20 };
+        ? { n: 5, w: 232, gap: 16, x0: 28,  bY: 516, bH: 112, iY: 664, bubR: 50, tapK: 1.06 }
+        : { n: 3, w: 340, gap: 32, x0: 98,  bY: 508, bH: 132, iY: 684, bubR: 62, tapK: 1.30 };
     }
     return LC;
   }
@@ -5055,50 +5418,12 @@ html, body {
     }
   }
 
-  /* ------------------------------------------------------------------- tabs */
-  function bushGlyph(c, x, y, s) {
-    c.save();
-    c.fillStyle = C.leafLight;
-    c.beginPath(); c.arc(x, y - s * .06, s * .30, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x - s * .25, y + s * .11, s * .22, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x + s * .25, y + s * .11, s * .22, 0, TAU); c.fill();
-    c.fillStyle = C.berry;
-    c.beginPath(); c.arc(x - s * .10, y - s * .04, s * .09, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x + s * .15, y + s * .09, s * .09, 0, TAU); c.fill();
-    c.restore();
-  }
-  function hatGlyph(c, x, y, s) {
-    var f = A_('hat'), hats = hatCatalog();
-    if (f && hats) { f(c, x, y, s * .95, hats[0].id); return; }
-    c.save();
-    c.fillStyle = C.berry;
-    c.beginPath(); c.ellipse(x, y + s * .18, s * .46, s * .13, 0, 0, TAU); c.fill();
-    c.beginPath(); c.arc(x, y + s * .08, s * .27, Math.PI, 0); c.fill();
-    c.fillStyle = C.sun;
-    c.fillRect(x - s * .27, y + s * .02, s * .54, s * .09);
-    c.restore();
-  }
+  /* ------------------------------------------------------------------ title */
 
+  /* One title, no tabs: the hat shop that used to sit beside the clearing moved
+     out to its own place, so this scene is a single product again and gets its
+     y 104..206 band back. */
   function drawTabs(c, sv) {
-    var tabs = [
-      { id: 'radura', label: 'Radura', icon: bushGlyph },
-      { id: 'hats', label: 'Cappellini', icon: hatGlyph }
-    ];
-    tabs.forEach(function (o, i) {
-      var on = S.tab === o.id;
-      G.ui.button({
-        id: 'nido-tab-' + o.id, x: 28 + i * 262, y: TAB_Y, w: 250, h: TAB_H, r: 26,
-        color: on ? C.leaf : '#8b7c6b', fontSize: on ? 33 : 29,
-        label: o.label, icon: o.icon,
-        onTap: function () {
-          if (S.tab === o.id) return;
-          S.tab = o.id; S.idle = 0; S.tryT = 0; S.tryId = null;
-          G.sfx('whoosh');
-          G.say(o.id === 'hats' ? 'I cappellini!' : 'La radura!');
-        }
-      });
-    });
-
     var sign = A_('sign');
     if (sign) sign(c, 578, TAB_Y - 4, 272, TAB_H + 8, 'Il Nido');
     else {
@@ -5108,7 +5433,7 @@ html, body {
 
     // Level 2 gets a single "collect everything" button; level 1 has one huge
     // button per plot instead, which is easier to understand at three.
-    if (G.level !== 2 || S.tab !== 'radura') return;
+    if (G.level !== 2) return;
     var n = nSlots(), tot = 0;
     DEFS.forEach(function (d, i) { if (i < n) tot += bubSum(S.bub[d.id]); });
     if (tot <= 0) return;
@@ -5270,163 +5595,6 @@ html, body {
   }
 
   /* ------------------------------------------------------------- the hat shop */
-  function previewHat() {
-    if (S.tryT > 0 && S.tryId) return S.tryId;
-    return G.save.hat || null;
-  }
-  function hatName(id) {
-    var hats = hatCatalog(), i;
-    if (!hats || !id) return 'Senza cappello';
-    for (i = 0; i < hats.length; i++) if (hats[i].id === id) return hats[i].name || 'Cappello';
-    return 'Cappello';
-  }
-
-  function drawShop(c) {
-    var hats = hatCatalog(), L = conf();
-    c.save(); c.fillStyle = 'rgba(9,32,21,.38)'; c.fillRect(0, FIELD_TOP - 6, W, H - FIELD_TOP + 6); c.restore();
-
-    /* ---- left: the dino wearing whatever you are looking at */
-    board(c, 36, 208, 372, 384, 30);
-    var pid = previewHat();
-    G.text(hatName(pid), 222, 254, { size: 30, color: C.ink, maxWidth: 330 });
-    if (S.tryT > 0 && S.tryId && G.save.hats.indexOf(S.tryId) < 0) {
-      G.text('lo stai provando', 222, 296, { size: 22, color: '#8a7864', weight: 700 });
-    }
-    var dinoFn = A_('dino');
-    if (dinoFn) dinoFn(c, 222, 560, 244, { color: dinoColor(), hat: pid, pose: 'happy', t: G.t, facing: 1 });
-    else blobs(c, [222, 480, 82, 222, 386, 54], dinoColor(), 5);
-
-    var bare = !G.save.hat;
-    G.ui.button({
-      id: 'nido-bare', x: 36, y: 600, w: 372, h: 104, r: 26,
-      color: bare ? '#a49889' : C.bark, label: 'Senza cappello', fontSize: 30,
-      onTap: function () {
-        S.tryT = 0; S.tryId = null;
-        if (bare) { G.say('Il dino è già senza cappello.'); return; }
-        G.save.hat = null; G.saveNow(); G.sfx('pop'); G.say('Senza cappello!');
-      }
-    });
-
-    /* ---- right: the shelves */
-    if (!hats) {
-      board(c, 432, 208, 812, 336, 28);
-      G.text('I cappellini arrivano presto!', 838, 348, { size: 36, color: C.ink });
-      G.text('Intanto raccogli tante stelline', 838, 408, { size: 26, color: '#8a7864', weight: 700 });
-      return;
-    }
-
-    var per = L.perPage, pages = Math.max(1, Math.ceil(hats.length / per));
-    if (S.page >= pages) S.page = 0;
-    var step = L.cardW + L.cardGap, first = S.page * per, i, h;
-    for (i = 0; i < per; i++) {
-      h = hats[first + i];
-      if (!h) break;
-      drawHatCard(c, h, 432 + i * step, 208, L.cardW, 336);
-    }
-
-    if (pages > 1) {
-      G.ui.round({
-        id: 'nido-prev', x: 520, y: 628, r: 62, color: C.cream,
-        icon: function (cc, x, y, r) { arrowGlyph(cc, x, y, r * .5, -1); },
-        onTap: function () { S.page = (S.page + pages - 1) % pages; G.sfx('whoosh'); }
-      });
-      G.ui.round({
-        id: 'nido-next', x: 1160, y: 628, r: 62, color: C.cream,
-        icon: function (cc, x, y, r) { arrowGlyph(cc, x, y, r * .5, 1); },
-        onTap: function () { S.page = (S.page + 1) % pages; G.sfx('whoosh'); }
-      });
-      for (i = 0; i < pages; i++) {
-        c.save();
-        c.fillStyle = i === S.page ? C.sun : 'rgba(255,246,224,.45)';
-        c.beginPath(); c.arc(840 - (pages - 1) * 16 + i * 32, 628, i === S.page ? 12 : 9, 0, TAU); c.fill();
-        c.restore();
-      }
-    } else {
-      starIcon(c, 740, 628, 22);
-      G.text('Le stelline si vincono nei giochi!', 776, 628, {
-        size: 28, color: C.cream, align: 'left', stroke: 'rgba(10,36,22,.7)', strokeWidth: 7
-      });
-    }
-  }
-
-  function drawHatCard(c, h, x, y, w, hh) {
-    var owned = G.save.hats.indexOf(h.id) >= 0;
-    var worn = G.save.hat === h.id;
-    var price = Math.max(1, Math.round(num(h.price, 5)));
-    var afford = starsOwned() >= price;
-    var cx = x + w / 2;
-    var face = worn ? '#ffe9a8' : owned ? '#dff5e6' : afford ? C.cream : '#ded3c4';
-
-    c.save();
-    c.fillStyle = 'rgba(30,18,6,.28)';
-    G.roundRect(c, x, y + 8, w, hh, 26); c.fill();
-    c.fillStyle = face;
-    G.roundRect(c, x, y, w, hh, 26); c.fill();
-    c.strokeStyle = worn ? '#d9a01c' : owned ? C.leafDark : C.bark;
-    c.lineWidth = worn ? 8 : 5;
-    G.roundRect(c, x + 4, y + 4, w - 8, hh - 8, 22); c.stroke();
-    c.restore();
-
-    var hatFn = A_('hat'), hs = G.level === 2 ? 118 : 150;
-    if (hatFn) hatFn(c, cx, y + 126, hs, h.id);
-    else {
-      c.save();
-      c.fillStyle = C.plum;
-      c.beginPath(); c.ellipse(cx, y + 150, hs * .46, hs * .13, 0, 0, TAU); c.fill();
-      c.beginPath(); c.arc(cx, y + 138, hs * .28, Math.PI, 0); c.fill();
-      c.restore();
-    }
-    G.text(h.name || 'Cappello', cx, y + 224, {
-      size: G.level === 2 ? 22 : 26, color: C.ink, maxWidth: w - 24
-    });
-
-    // action strip: price, or what tapping will do
-    c.save();
-    c.fillStyle = worn ? '#f6cf62' : owned ? '#b8e6c6' : 'rgba(40,24,8,.10)';
-    G.roundRect(c, x + 14, y + 250, w - 28, 66, 20); c.fill();
-    c.restore();
-    if (worn) {
-      G.text('Addosso!', cx, y + 283, { size: 27, color: '#6b4a08' });
-    } else if (owned) {
-      G.text('Indossa', cx, y + 283, { size: 27, color: C.leafDark });
-    } else {
-      var wide = price > 9 ? 20 : 12;
-      starIcon(c, cx - wide - 20, y + 283, 20);
-      G.text(nShow(price), cx - wide + 10, y + 283, {
-        size: 34, color: afford ? C.ink : '#7d7166', align: 'left'
-      });
-    }
-    if (owned) checkBadge(c, x + w - 30, y + 30, 19);
-
-    // invisible hit area over the card art (the core paints the press state)
-    G.ui.button({
-      id: 'nido-hat-' + h.id, x: x, y: y, w: w, h: hh, r: 26, ghost: true,
-      onTap: function () {
-        S.tryId = h.id; S.tryT = 4;
-        if (owned) {
-          if (worn) { G.sfx('pop'); G.say('Ti sta benissimo!'); return; }
-          G.save.hat = h.id; G.saveNow(); G.sfx('good');
-          G.fx.ring(222, 420, C.sun, 180);
-          G.fx.burst(222, 420, { color: C.sun, count: 14, speed: 220, size: 11, life: .7, shape: 'star' });
-          G.say('Ecco ' + (h.name || 'il cappello') + '!');
-          return;
-        }
-        if (spendStars(price)) {
-          G.save.hats.push(h.id);
-          G.save.hat = h.id;
-          G.saveNow();
-          G.fx.confetti(); G.sfx('win');
-          G.fx.ring(222, 420, C.sun, 210);
-          G.say('Hai comprato ' + (h.name || 'il cappello') + '!');
-        } else {
-          // no scolding: you get to try it on while you save up for it
-          softNo('star', cx, y + 60);
-        }
-      }
-    });
-  }
-
-  /* ------------------------------------------------------- welcome-back panel */
   function drawWelcome(c) {
     var i, a, rr;
     c.save(); c.fillStyle = 'rgba(8,26,18,.64)'; c.fillRect(0, 0, W, H); c.restore();
@@ -5470,11 +5638,8 @@ html, body {
   G.scene('nido', {
     enter: function () {
       var sv = bank(), n = nSlots();
-      S.tab = 'radura';
       S.bub = {}; S.chicks = []; S.pet = {}; S.pop = {};
-      S.tryId = null; S.tryT = 0;
       S.idle = 0; S.hintT = 0; S.saveT = 0; S.hello = .5;
-      S.page = G.clamp(sv.page, 0, 30);
       WB.on = false; WB.total = 0; WB.chicks = 0; WB.t = 0;
       DEFS.forEach(function (d) { S.bub[d.id] = []; });
 
@@ -5518,7 +5683,6 @@ html, body {
         sv.items[d.id].pend = G.clamp(Math.round(bubSum(S.bub[d.id] || [])), 0, STORE_CAP);
       });
       sv.lastSeen = Date.now();
-      sv.page = S.page;
       // never swallow the welcome-back gift, even if we walk out on it
       if (WB.on && WB.total >= 1) { G.addFruits(WB.total, 640, 322); WB.on = false; WB.total = 0; }
       G.saveNow();
@@ -5535,7 +5699,6 @@ html, body {
           else G.say(G.pick(['Benvenuto nel Nido!', 'Ecco la tua radura!', 'Guarda come cresce il Nido!']));
         }
       }
-      if (S.tryT > 0) S.tryT = Math.max(0, S.tryT - dt);
       for (i = 0; i < DEFS.length; i++) {
         d = DEFS[i];
         if (S.pop[d.id] > 0) S.pop[d.id] = Math.max(0, S.pop[d.id] - dt * 2.6);
@@ -5572,7 +5735,7 @@ html, body {
       var ripe = 0;
       DEFS.forEach(function (d, i) { if (i < n) ripe += bubSum(S.bub[d.id]); });
       S.idle += dt;
-      if (S.tab === 'radura' && ripe > 0 && S.idle > 6) {
+      if (ripe > 0 && S.idle > 6) {
         S.hintT -= dt;
         if (S.hintT <= 0) {
           S.hintT = 2.4;
@@ -5591,14 +5754,13 @@ html, body {
     draw: function (c) {
       var sv = bank();               // an ancient or partial save must not crash us
       drawBg(c);
-      if (S.tab === 'radura') drawField(c, sv, !WB.on);
-      else drawShop(c);
+      drawField(c, sv, !WB.on);
       if (!WB.on) drawTabs(c, sv);
       else drawWelcome(c);
     },
 
     onDown: function (p) {
-      if (WB.on || S.tab !== 'radura' || p.y < FIELD_TOP) return;
+      if (WB.on || p.y < FIELD_TOP) return;
       S.idle = 0; S.hintT = 0;
 
       var L = conf(), sv = bank(), n = L.n, i, j;
@@ -5645,6 +5807,647 @@ html, body {
 })();
 
 
+/* ==================== 23-guardaroba.js ==================== */
+/* Dino Giungla — "Il Guardaroba".
+
+   The fourth place. It is NOT a shop: nothing here has a price, and nothing
+   here can ever tell a child no. Pieces arrive in crates that fill up as you
+   play the other three games, and a crate that is not ready yet is simply not
+   drawn — not greyed out, not padlocked. A dark object that answers "not yet"
+   is a padlock painted beige.
+
+   The reward is not the piece, it is the REACTION: every item carries a pose
+   and a line (see A.GEAR in 01c-art-gear.js), so putting the nightcap on makes
+   the dino actually fall asleep. Reliable cause and effect is the thing a
+   three-year-old repeats eighty times in a row.
+
+   Level 1 is a toy box with four rules and no slots at all: tap a toy, it flies
+   on and the dino reacts; tap it again, it comes off; tap the dino, he does it
+   again; tap the dice, everything changes. Level 2 is composition: four slots,
+   a shelf per slot, three portraits that save a whole look, and a window onto
+   your brother's dino.
+
+   Owns: G.save.guardaroba, plus G.save.hat / G.save.hats, which moved here when
+   the hat shop left the Nido. */
+(function () {
+  'use strict';
+
+  var C = G.C, W = G.W, H = G.H;
+
+  /* Given in this order — sorted by how strong the reaction is, not by slot.
+     The first four crates are the four best reactions in the game. Showing a
+     child "the four places things go" is a grown-up's taxonomy; at three it
+     means nothing. */
+  var CRATE_ORDER = [
+    'cuffia', 'occhialini', 'fiocco', 'mago', 'papillon', 'sole', 'corona',
+    'anellino', 'berretto', 'medaglia', 'pirata', 'fiore', 'esploratore', 'cilindro'
+  ];
+
+  /* Stars needed to have earned the nth crate. Cheap at first — the first crate
+     lands after two games — then slower. The whole collection costs 48 stars
+     against the 107 the old shop wanted for the eight hats alone. */
+  function starsFor(n) {
+    return n <= 6 ? n * 2 : n <= 12 ? 12 + (n - 6) * 4 : 36 + (n - 12) * 6;
+  }
+
+  /* ------------------------------------------------------------ save branch */
+  function br() {
+    var g = G.save.guardaroba;
+    if (!g || typeof g !== 'object') { g = G.save.guardaroba = {}; }
+    if (!g.gear || typeof g.gear !== 'object') g.gear = { occhi: null, collo: null, coda: null };
+    if (!Array.isArray(g.owned)) g.owned = [];
+    if (!Array.isArray(g.shots)) g.shots = [];
+    if (typeof g.opened !== 'number' || !isFinite(g.opened) || g.opened < 0) g.opened = 0;
+    if (typeof g.nudges !== 'number' || !isFinite(g.nudges)) g.nudges = 0;
+    if (A.SLOTS.indexOf(g.slot) < 0) g.slot = 'testa';
+    if (!Array.isArray(G.save.hats)) G.save.hats = [];
+    if (typeof G.save.hat !== 'string') G.save.hat = null;
+
+    /* One-off migration: whoever already bought hats keeps them, is not given
+       them a second time (CRATE_ORDER skips what you own), and gets credit for
+       what they already spent — otherwise closing the shop would quietly wipe
+       out an afternoon of saving up. */
+    if (typeof g.seed !== 'number' || !isFinite(g.seed)) {
+      var spent = 0, k;
+      for (k = 0; k < (A.HATS || []).length; k++) {
+        if (G.save.hats.indexOf(A.HATS[k].id) >= 0) spent += A.HATS[k].price || 0;
+      }
+      g.seed = spent;
+      g.opened = Math.min(CRATE_ORDER.length, G.save.hats.length);
+    }
+    return g;
+  }
+
+  function ownsId(id) {
+    var g = A.gearOf(id);
+    if (!g) return false;
+    return g.slot === 'testa'
+      ? G.save.hats.indexOf(id) >= 0
+      : br().owned.indexOf(id) >= 0;
+  }
+  function ownedList() {
+    return A.GEAR.filter(function (g) { return ownsId(g.id); });
+  }
+  function wornIn(slot) {
+    return slot === 'testa' ? G.save.hat : br().gear[slot];
+  }
+  function wear(slot, id) {
+    if (slot === 'testa') G.save.hat = id; else br().gear[slot] = id;
+    G.saveNow();
+  }
+
+  /* How many crates have been earned, opened, and are waiting right now.
+     Recomputed every frame on purpose: G.addStars does not raise G.save.stars
+     until the flying star lands on the HUD (~0.6s), so a crate earned by the
+     round you just won would be invisible if this were read once on enter(). */
+  function earned() {
+    var g = br(), total = (G.save.stars || 0) + g.seed, n = 0;
+    while (n < CRATE_ORDER.length && starsFor(n + 1) <= total) n++;
+    return n;
+  }
+  function waiting() { return Math.max(0, earned() - br().opened); }
+  function nextId() {
+    for (var i = 0; i < CRATE_ORDER.length; i++) {
+      if (!ownsId(CRATE_ORDER[i])) return CRATE_ORDER[i];
+    }
+    return null;
+  }
+  /* Published so the jungle can badge the station and the two minigames can
+     offer a shortcut straight to the present. */
+  G.crates = function () { return waiting(); };
+
+  /* --------------------------------------------------------------- state */
+  var S = {
+    mode: 'gioca',        // 'gioca' | 'apri'
+    react: 0,             // seconds left on the current reaction
+    pose: null, last: null,
+    fly: null,            // {id, x, y, tx, ty, k}
+    crate: 0,             // taps landed on the crate, 0..3
+    prize: null, prizeT: 0,
+    idle: 0, shake: 0, flash: 0
+  };
+  var look = { testa: null, occhi: null, collo: null, coda: null };
+  var mate = { testa: null, occhi: null, collo: null, coda: null };
+
+  function react(id) {
+    var g = A.gearOf(id);
+    if (!g) return;
+    S.react = 1.4; S.pose = g.pose; S.last = id;
+    G.say(g.say);
+  }
+  function pose() { return S.react > 0 ? S.pose : 'idle'; }
+
+  /* --------------------------------------------------------------- pieces */
+  function toggle(id, fromX, fromY, dinoX, dinoY) {
+    var g = A.gearOf(id);
+    if (!g) return;
+    if (wornIn(g.slot) === id) {                 // same rule, mirrored: take it off
+      wear(g.slot, null);
+      G.sfx('pop');
+      G.fx.burst(fromX, fromY, { color: C.cream, count: 8, speed: 120, life: 0.5 });
+      if (S.last === id) { S.react = 0; S.last = null; }
+      return;
+    }
+    wear(g.slot, id);
+    G.sfx('tap');
+    /* The 0.4s flight is not a delay to trim: at three, tracking a slow moving
+       object is mature, while a saccade to a sparkle 900px from your finger is
+       not. It is what makes the destination legible. */
+    S.fly = { id: id, x: fromX, y: fromY, tx: dinoX, ty: dinoY, k: 0 };
+  }
+
+  function stripAll() {
+    var i;
+    wear('testa', null);
+    for (i = 1; i < A.SLOTS.length; i++) wear(A.SLOTS[i], null);
+    S.react = 0; S.last = null;
+    G.sfx('pop');
+    for (i = 0; i < 14; i++) {
+      G.fx.burst(240 + Math.random() * 140, 300 + Math.random() * 200,
+        { color: C.sun, count: 3, speed: 200, life: 0.8, gravity: 420, shape: 'star' });
+    }
+    G.say('Tutto via!');
+  }
+
+  function roll() {
+    var own = ownedList(), i, s, pool, pick = null;
+    for (i = 0; i < A.SLOTS.length; i++) {
+      s = A.SLOTS[i];
+      pool = own.filter(function (g) { return g.slot === s; });
+      /* Every owned slot, including the ones this level does not show — a child
+         who put a bow on the tail at level 2 and then moved to level 1 must
+         still be able to lose it. And null is a legal outcome: sometimes the
+         surprise is that something comes off. */
+      if (!pool.length) { wear(s, null); continue; }
+      var r = G.rndi(0, pool.length);            // == pool.length means "nothing"
+      wear(s, r >= pool.length ? null : pool[r].id);
+      if (r < pool.length) pick = pool[r].id;
+    }
+    G.sfx('chime');
+    G.fx.confetti();
+    if (pick) react(pick); else G.say('Sorpresa!');
+  }
+
+  /* ---------------------------------------------------------------- crate */
+  function openCrate() {
+    var g = br(), id = nextId();
+    g.opened = Math.min(CRATE_ORDER.length, g.opened + 1);
+    if (!id) { G.saveNow(); S.mode = 'gioca'; return; }
+    var item = A.gearOf(id);
+    if (item.slot === 'testa') { if (G.save.hats.indexOf(id) < 0) G.save.hats.push(id); }
+    else if (g.owned.indexOf(id) < 0) g.owned.push(id);
+    wear(item.slot, id);
+    G.saveNow();
+    S.prize = id; S.prizeT = 2.2;
+    G.sfx('win'); G.fx.confetti();
+    G.fx.ring(W / 2, 380, C.sun);
+    G.say('Guarda! ' + item.name + '!');
+    S.react = 2.2; S.pose = item.pose; S.last = id;
+  }
+
+  function drawCrate(c, x, y, s, open) {
+    var w = s * 0.52, hh = s * 0.34, lift = open * 0.5;
+    c.save();
+    c.fillStyle = 'rgba(20,10,0,.22)';
+    c.beginPath(); c.ellipse(x, y + hh + s * 0.06, w * 1.05, s * 0.09, 0, 0, 7); c.fill();
+    if (open > 0.05) {                            // light spilling out
+      c.globalAlpha = 0.30 + open * 0.5;
+      c.fillStyle = C.sun;
+      c.beginPath(); c.ellipse(x, y - hh * 0.2, w * (0.7 + open), hh * (0.5 + open), 0, 0, 7); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.save();                                     // lid, hinged at the back
+    c.translate(x, y - hh);
+    c.rotate(-lift);
+    c.fillStyle = C.barkDark;
+    G.roundRect(c, -w, -s * 0.20, w * 2, s * 0.22, s * 0.05); c.fill();
+    c.fillStyle = C.bark;
+    G.roundRect(c, -w * 0.94, -s * 0.17, w * 1.88, s * 0.15, s * 0.04); c.fill();
+    c.restore();
+    c.fillStyle = C.barkDark;                     // body
+    G.roundRect(c, x - w, y - hh, w * 2, hh * 2, s * 0.05); c.fill();
+    c.fillStyle = C.bark;
+    G.roundRect(c, x - w * 0.94, y - hh * 0.9, w * 1.88, hh * 1.8, s * 0.04); c.fill();
+    c.fillStyle = C.barkDark;                     // bands
+    c.fillRect(x - w * 0.62, y - hh, w * 0.16, hh * 2);
+    c.fillRect(x + w * 0.46, y - hh, w * 0.16, hh * 2);
+    c.fillStyle = C.sun;                          // clasp
+    c.beginPath(); c.arc(x, y - hh * 0.05, s * 0.07, 0, 7); c.fill();
+    c.restore();
+  }
+
+  /* -------------------------------------------------------------- helpers */
+  function cross(c, cx, cy, r) {
+    c.save();
+    c.strokeStyle = 'rgba(120,100,80,.75)'; c.lineWidth = Math.max(3, r * 0.13);
+    c.lineCap = 'round';
+    c.beginPath(); c.arc(cx, cy, r * 0.66, 0, 7); c.stroke();
+    c.beginPath();
+    c.moveTo(cx - r * 0.44, cy + r * 0.44); c.lineTo(cx + r * 0.44, cy - r * 0.44);
+    c.stroke(); c.restore();
+  }
+  function dice(c, cx, cy, r) {
+    c.save();
+    c.fillStyle = C.cream;
+    G.roundRect(c, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24, r * 0.22);
+    c.fill();
+    c.strokeStyle = C.ink; c.lineWidth = Math.max(2.5, r * 0.09); c.stroke();
+    c.fillStyle = C.ink;
+    [[-0.28, -0.28], [0.28, -0.28], [0, 0], [-0.28, 0.28], [0.28, 0.28]].forEach(function (p) {
+      c.beginPath(); c.arc(cx + p[0] * r, cy + p[1] * r, r * 0.10, 0, 7); c.fill();
+    });
+    c.restore();
+  }
+  function camera(c, cx, cy, r) {
+    c.save();
+    c.fillStyle = C.ink;
+    G.roundRect(c, cx - r * 0.64, cy - r * 0.42, r * 1.28, r * 0.86, r * 0.14); c.fill();
+    c.fillStyle = C.cream;
+    c.beginPath(); c.arc(cx, cy, r * 0.28, 0, 7); c.fill();
+    c.fillStyle = C.blueberry;
+    c.beginPath(); c.arc(cx, cy, r * 0.18, 0, 7); c.fill();
+    c.fillStyle = C.berry;
+    c.beginPath(); c.arc(cx + r * 0.40, cy - r * 0.26, r * 0.08, 0, 7); c.fill();
+    c.restore();
+  }
+  var SHOT_ICON = ['stella', 'cuore', 'luna'];
+  function shotIcon(c, cx, cy, r, i) {
+    var f = A.SHAPES && A.SHAPES[SHOT_ICON[i % 3]];
+    c.save();
+    if (f) f(c, cx, cy, r, [C.sun, C.pinkPop, C.tangerine][i % 3]);
+    else { c.fillStyle = C.sun; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); }
+    c.restore();
+  }
+
+  function backdrop(c) {
+    A.jungle(c, G.t, { dim: 0.30 });
+    c.save(); c.fillStyle = 'rgba(18,45,30,.42)'; c.fillRect(0, 0, W, H); c.restore();
+  }
+
+  /* Preview of a piece inside a cell, at a size the cell can hold. */
+  function preview(c, g, cx, cy, size) {
+    c.save();
+    g.draw(c, cx, cy, size);
+    c.restore();
+  }
+
+  /* ================================================================ SCENE */
+  G.scene('guardaroba', {
+    enter: function () {
+      var g = br();
+      S.mode = waiting() > 0 ? 'apri' : 'gioca';
+      S.react = 0; S.pose = null; S.last = null; S.fly = null;
+      S.crate = 0; S.prize = null; S.prizeT = 0; S.idle = 0; S.flash = 0;
+      G.look(G.save, look);
+      if (!G.save.seen) G.save.seen = {};
+      var first = !G.save.seen.guardaroba;
+      G.save.seen.guardaroba = true;
+      G.saveNow();
+      setTimeout(function () {
+        if (G.current !== 'guardaroba') return;
+        if (S.mode === 'apri') G.say('Un regalo! Aprilo!');
+        else if (first) G.say('Questo e il guardaroba. Tocca un giocattolo e vedi cosa fa!');
+        else G.say(G.pick(['Cosa ti metti oggi?', 'Vestiamo il dino!', 'Provane uno!']));
+      }, 420);
+    },
+
+    exit: function () { S.fly = null; S.mode = 'gioca'; },
+
+    update: function (dt) {
+      if (S.react > 0) S.react = Math.max(0, S.react - dt);
+      if (S.prizeT > 0) S.prizeT = Math.max(0, S.prizeT - dt);
+      if (S.flash > 0) S.flash = Math.max(0, S.flash - dt * 3);
+      if (S.fly) {
+        S.fly.k += dt / 0.4;
+        if (S.fly.k >= 1) { react(S.fly.id); S.fly = null; }
+      }
+      G.look(G.save, look);
+
+      /* A nudge if he freezes, twice at most, and only for the little one. */
+      if (G.level === 1 && S.mode === 'gioca' && !S.fly) {
+        S.idle += dt;
+        if (S.idle > 12 && br().nudges < 2) {
+          S.idle = 0; br().nudges++;
+          var own = ownedList();
+          if (own.length) { G.say('Provalo!'); S.flash = 1; }
+        }
+      }
+    },
+
+    onDown: function () { S.idle = 0; },
+
+    draw: function (c) {
+      backdrop(c);
+      if (S.mode === 'apri') { drawOpen(c); return; }
+      if (G.level === 2) drawBig(c); else drawSmall(c);
+    }
+  });
+
+  /* --------------------------------------------------------- crate opening */
+  function drawOpen(c) {
+    var open = S.prize ? 1 : S.crate / 3;
+    G.text('Un regalo per te!', W / 2, 132, {
+      size: 54, color: C.cream, stroke: 'rgba(12,40,25,.75)', strokeWidth: 11
+    });
+    drawCrate(c, W / 2, 420, 330, open);
+
+    if (S.prize) {
+      var item = A.gearOf(S.prize);
+      var k = 1 - Math.max(0, S.prizeT - 1.2) / 1.0;
+      var yy = 300 - G.ease(G.clamp(k, 0, 1)) * 60;
+      c.save();
+      c.globalAlpha = G.clamp(k * 1.4, 0, 1);
+      preview(c, item, W / 2, yy, 150);
+      c.restore();
+      G.text(item.name, W / 2, 560, {
+        size: 46, color: C.cream, stroke: 'rgba(12,40,25,.75)', strokeWidth: 10
+      });
+      if (S.prizeT <= 0) {
+        G.ui.button({
+          x: W / 2 - 190, y: 610, w: 380, h: 96, r: 28, color: C.leaf,
+          label: waiting() > 0 ? 'Un altro!' : 'Provalo!', fontSize: 40,
+          onTap: function () {
+            S.prize = null; S.crate = 0;
+            S.mode = waiting() > 0 ? 'apri' : 'gioca';
+          }
+        });
+      }
+      return;
+    }
+
+    /* One huge target, three identical knocks. No aiming, no order. */
+    G.ui.button({
+      id: 'crate', x: W / 2 - 230, y: 220, w: 460, h: 400, r: 40, ghost: true,
+      onTap: function () {
+        S.crate++;
+        G.sfx('tap'); G.shake(3);
+        G.fx.burst(W / 2, 420, { color: C.sun, count: 10, speed: 240, life: 0.5, shape: 'star' });
+        if (S.crate >= 3) openCrate();
+      }
+    });
+    G.text(['Tocca la cassa!', 'Ancora!', 'Ancora una volta!'][Math.min(2, S.crate)],
+      W / 2, 640, { size: 38, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9, weight: 800 });
+  }
+
+  /* ------------------------------------------------------------- level 1 */
+  /* Grid that resizes itself so every toy you own is always on screen at once:
+     never a page, never an arrow, and never a toy that disappears. A crown that
+     vanishes behind a chevron is a real loss at three. */
+  var GX = 560, GY = 120, GW = 696, GH = 480;
+  function fit(n) {
+    if (n <= 4) return { cols: 2, rows: 2 };
+    if (n <= 6) return { cols: 3, rows: 2 };
+    if (n <= 9) return { cols: 3, rows: 3 };
+    if (n <= 12) return { cols: 4, rows: 3 };
+    return { cols: 4, rows: 4 };
+  }
+
+  function drawSmall(c) {
+    var own = ownedList();
+    var dx = 300, dy = 650, ds = 280;
+
+    A.dino(c, dx, dy, ds, { gear: look, color: dinoColor(), pose: pose(), t: G.t, facing: 1 });
+    G.ui.button({
+      id: 'poke', x: dx - 150, y: dy - 300, w: 300, h: 300, r: 40, ghost: true,
+      onTap: function () { if (S.last) react(S.last); else { G.sfx('tap'); G.say('Ciao!'); } }
+    });
+
+    var f = fit(own.length), i;
+    var cw = (GW - (f.cols - 1) * 20) / f.cols;
+    var ch = (GH - (f.rows - 1) * 18) / f.rows;
+    for (i = 0; i < own.length && i < f.cols * f.rows; i++) {
+      (function (g, idx) {
+        var bx = GX + (idx % f.cols) * (cw + 20);
+        var by = GY + Math.floor(idx / f.cols) * (ch + 18);
+        var on = wornIn(g.slot) === g.id;
+        G.ui.button({
+          id: 'toy' + g.id, x: bx, y: by, w: cw, h: ch, r: 24,
+          color: on ? C.leafLight : C.cream,
+          icon: function (cc, ccx, ccy) {
+            preview(cc, g, ccx, ccy, Math.min(cw, ch) * 0.66);
+            if (on) {
+              cc.save(); cc.strokeStyle = C.leafDark; cc.lineWidth = 7; cc.lineCap = 'round';
+              cc.beginPath();
+              cc.moveTo(bx + cw - 46, by + 26); cc.lineTo(bx + cw - 32, by + 40);
+              cc.lineTo(bx + cw - 12, by + 16); cc.stroke(); cc.restore();
+            }
+          },
+          onTap: function () { toggle(g.id, bx + cw / 2, by + ch / 2, dx, dy - ds * 0.72); }
+        });
+      })(own[i], i);
+    }
+
+    if (!own.length) {
+      G.text('Gioca e arriveranno i regali!', GX + GW / 2, GY + GH / 2, {
+        size: 36, color: C.cream, weight: 800, maxWidth: GW - 40,
+        stroke: 'rgba(12,40,25,.7)', strokeWidth: 9
+      });
+    }
+
+    G.ui.button({
+      x: GX, y: 616, w: 336, h: 96, r: 28, color: C.bark, label: 'Tutto via!', fontSize: 40,
+      onTap: stripAll
+    });
+    G.ui.button({
+      x: GX + 360, y: 616, w: 336, h: 96, r: 28, color: C.plum, label: 'Sorpresa!', fontSize: 40,
+      icon: function (cc, ccx, ccy) { dice(cc, ccx - 108, ccy, 30); },
+      onTap: roll
+    });
+
+    drawFly(c);
+    drawProgress(c, 300, 128);
+  }
+
+  /* ------------------------------------------------------------- level 2 */
+  var SLOT_NAME = { testa: 'Testa', occhi: 'Occhi', collo: 'Collo', coda: 'Coda' };
+
+  function drawBig(c) {
+    var g = br(), i;
+    var dx = 330, dy = 560, ds = 225;
+
+    mirror(c, dx, 400, 200, 260);
+    A.dino(c, dx, dy, ds, { gear: look, color: dinoColor(), pose: pose(), t: G.t, facing: 1 });
+    G.ui.button({
+      id: 'poke', x: dx - 120, y: dy - 250, w: 240, h: 250, r: 36, ghost: true,
+      onTap: function () { if (S.last) react(S.last); else { G.sfx('tap'); G.say('Ciao!'); } }
+    });
+
+    // slot bar + dice
+    for (i = 0; i < A.SLOTS.length; i++) {
+      (function (slot, idx) {
+        var cx = 640 + idx * 122;
+        var on = g.slot === slot;
+        G.ui.round({
+          id: 'slot' + slot, x: cx, y: 160, r: 54,
+          color: on ? C.leafLight : C.cream,
+          icon: function (cc, ccx, ccy, r) {
+            var id = wornIn(slot), it = id && A.gearOf(id);
+            if (it) preview(cc, it, ccx, ccy, r * 1.15);
+            else cross(cc, ccx, ccy, r * 0.72);
+          },
+          onTap: function () { g.slot = slot; G.sfx('pop'); G.saveNow(); }
+        });
+        G.text(SLOT_NAME[slot], cx, 232, {
+          size: 20, color: C.cream, weight: 800, stroke: 'rgba(12,40,25,.7)', strokeWidth: 6
+        });
+      })(A.SLOTS[i], i);
+    }
+    G.ui.round({
+      id: 'dice', x: 1128, y: 160, r: 54, color: C.plum,
+      icon: function (cc, ccx, ccy, r) { dice(cc, ccx, ccy, r * 0.9); },
+      onTap: roll
+    });
+
+    // shelf of the active slot: nine cells, "Niente" always first
+    var pool = ownedList().filter(function (it) { return it.slot === g.slot; });
+    var cells = [null].concat(pool.map(function (it) { return it.id; })).slice(0, 9);
+    for (i = 0; i < cells.length; i++) {
+      (function (id, idx) {
+        var bx = 600 + (idx % 3) * 208, by = 258 + Math.floor(idx / 3) * 154;
+        var on = wornIn(g.slot) === id;
+        G.ui.button({
+          id: 'cell' + g.slot + idx, x: bx, y: by, w: 190, h: 140, r: 22,
+          color: on ? C.leafLight : C.cream,
+          icon: function (cc, ccx, ccy) {
+            if (!id) { cross(cc, ccx, ccy, 40); return; }
+            preview(cc, A.gearOf(id), ccx, ccy, 84);
+          },
+          onTap: function () {
+            if (!id) {
+              wear(g.slot, null); G.sfx('pop');
+              S.react = 0; S.last = null;
+              return;
+            }
+            toggle(id, bx + 95, by + 70, dx, dy - ds * 0.72);
+          }
+        });
+      })(cells[i], i);
+    }
+
+    drawShots(c, g, dx, dy, ds);
+    drawMate(c);
+    drawFly(c);
+    drawProgress(c, 330, 690);
+
+    // collection pips: a count, never a judgement
+    var have = ownedList().length, tot = CRATE_ORDER.length;
+    G.text(have + ' di ' + tot, 1128, 232, {
+      size: 20, color: C.cream, weight: 800, stroke: 'rgba(12,40,25,.7)', strokeWidth: 6
+    });
+  }
+
+  function mirror(c, cx, cy, rx, ry) {
+    c.save();
+    c.globalAlpha = 0.22;
+    c.fillStyle = C.cream;
+    c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.fill();
+    c.globalAlpha = 1;
+    c.strokeStyle = C.bark; c.lineWidth = 12;
+    c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.stroke();
+    c.strokeStyle = C.barkDark; c.lineWidth = 4;
+    c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, 7); c.stroke();
+    c.restore();
+  }
+
+  /* Three portraits: photograph the whole look, get it back with one tap. It is
+     the picture you show your dad and the outfit slot at the same time. */
+  function drawShots(c, g, dx, dy, ds) {
+    var i;
+    G.ui.round({
+      id: 'shot', x: 89, y: 647, r: 59, color: C.tangerine,
+      icon: function (cc, ccx, ccy, r) { camera(cc, ccx, ccy, r * 0.9); },
+      onTap: function () {
+        var snap = {
+          testa: wornIn('testa'), occhi: wornIn('occhi'),
+          collo: wornIn('collo'), coda: wornIn('coda')
+        };
+        g.shots.unshift(snap);
+        g.shots.length = Math.min(3, g.shots.length);
+        G.saveNow(); G.sfx('chime'); G.fx.ring(89, 647, C.sun);
+        G.say('Fatto! Un vestito nuovo.');
+      }
+    });
+    for (i = 0; i < 3; i++) {
+      (function (idx) {
+        var bx = 166 + idx * 130, sh = g.shots[idx];
+        G.ui.button({
+          id: 'sh' + idx, x: bx, y: 588, w: 118, h: 118, r: 20,
+          color: sh ? C.cream : 'rgba(255,246,224,.30)',
+          icon: function (cc, ccx, ccy) {
+            if (!sh) { cross(cc, ccx, ccy, 30); return; }
+            A.dino(cc, ccx, ccy + 44, 96, { gear: sh, color: dinoColor(), pose: 'idle', t: 0, facing: 1 });
+            shotIcon(cc, bx + 98, 606, 13, idx);
+          },
+          onTap: function () {
+            if (!sh) { G.say('Prima fai una foto!'); return; }
+            wear('testa', sh.testa || null);
+            wear('occhi', sh.occhi || null);
+            wear('collo', sh.collo || null);
+            wear('coda', sh.coda || null);
+            G.sfx('good'); G.fx.confetti();
+            G.say('Ecco il tuo vestito!');
+          }
+        });
+      })(i);
+    }
+  }
+
+  /* Your brother's dino, wearing what HE left on. Read-only on purpose: writing
+     into another child's save would let you lend him a piece he does not own,
+     and he would lose it for good the moment he took it off. */
+  function drawMate(c) {
+    if (!G.accounts || !G.account) return;
+    var all = G.accounts.list().filter(function (a) { return a.id !== G.account.id; });
+    if (!all.length) return;
+    var other = all[0];
+    var sv = G.LS.get('dg.save.' + other.id, {}) || {};
+    G.look(sv, mate);
+    c.save();
+    A.panel(c, 30, 240, 120, 172, { r: 18 });
+    c.restore();
+    A.dino(c, 90, 386, 128, { gear: mate, color: other.color, pose: 'idle', t: G.t, facing: 1 });
+    G.text(other.name, 90, 400, { size: 18, color: C.ink, maxWidth: 104, weight: 800 });
+    G.ui.button({
+      id: 'mate', x: 30, y: 240, w: 120, h: 172, r: 18, ghost: true,
+      onTap: function () { G.sfx('tap'); G.say('Questo e il dino di ' + other.name + '!'); }
+    });
+  }
+
+  /* ---------------------------------------------------------------- bits */
+  function dinoColor() { return (G.account && G.account.color) || C.dino; }
+
+  function drawFly(c) {
+    if (!S.fly) return;
+    var k = G.ease(G.clamp(S.fly.k, 0, 1));
+    var g = A.gearOf(S.fly.id);
+    if (!g) return;
+    var x = G.lerp(S.fly.x, S.fly.tx, k);
+    var y = G.lerp(S.fly.y, S.fly.ty, k) - Math.sin(k * Math.PI) * 90;
+    c.save();
+    c.globalAlpha = 1 - k * 0.25;
+    preview(c, g, x, y, 72 + k * 26);
+    c.restore();
+  }
+
+  /* Progress towards the next crate, as a ring. No number to read: the ring
+     fills, and when it is full the present is simply there. */
+  function drawProgress(c, cx, cy) {
+    var g = br(), n = earned();
+    if (n >= CRATE_ORDER.length) return;
+    var have = (G.save.stars || 0) + g.seed;
+    var lo = starsFor(n), hi = starsFor(n + 1);
+    var k = G.clamp((have - lo) / Math.max(1, hi - lo), 0, 1);
+    c.save();
+    c.strokeStyle = 'rgba(255,246,224,.35)'; c.lineWidth = 9; c.lineCap = 'round';
+    c.beginPath(); c.arc(cx, cy, 26, 0, 7); c.stroke();
+    c.strokeStyle = C.sun; c.lineWidth = 9;
+    c.beginPath(); c.arc(cx, cy, 26, -Math.PI / 2, -Math.PI / 2 + k * 6.283); c.stroke();
+    c.restore();
+    drawCrate(c, cx, cy, 44, 0);
+  }
+})();
+
+
 /* ==================== 90-account.js ==================== */
 /* Accounts: who is playing. Each child gets their own dino, their own save and
    an optional 3-icon "secret" instead of a password — a 3-year-old cannot type
@@ -5678,8 +6481,19 @@ html, body {
     c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.stroke(); c.restore();
   }
 
-  function dinoPreview(c, x, y, s, color, hat, pose) {
-    if (window.A && A.dino) { A.dino(c, x, y, s, { color: color, hat: hat, pose: pose || 'idle', t: G.t, facing: 1 }); return; }
+  /* `gear` is a look object from G.look (see 01c-art-gear.js). Pass one when
+     drawing SOMEBODY ELSE'S dino; pass nothing for the current player and
+     A.dino resolves the current save itself.
+     Every account gets its OWN buffer — this screen draws up to five dinos in
+     a single frame, and a shared one would put the last child's hat on all of
+     them. To a three-year-old that is not a glitch, that is a theft. */
+  function dinoPreview(c, x, y, s, color, gear, pose) {
+    if (window.A && A.dino) {
+      var o = { color: color, pose: pose || 'idle', t: G.t, facing: 1 };
+      if (gear) o.gear = gear;
+      A.dino(c, x, y, s, o);
+      return;
+    }
     c.save(); c.fillStyle = color || C.dino;
     c.beginPath(); c.ellipse(x, y - s * .3, s * .32, s * .3, 0, 0, 7); c.fill(); c.restore();
   }
@@ -5696,13 +6510,15 @@ html, body {
   }
 
   /* ------------------------------------------------------- scene: accesso */
-  var hatCache = {};      // account id -> equipped hat, read once per entry
+  var lookCache = {};     // account id -> its OWN look buffer, read once per entry
 
   G.scene('accesso', {
     hud: false, back: false,
     enter: function () {
-      hatCache = {};
-      G.accounts.list().forEach(function (a) { hatCache[a.id] = (G.LS.get('dg.save.' + a.id, {}) || {}).hat || null; });
+      lookCache = {};
+      G.accounts.list().forEach(function (a) {
+        lookCache[a.id] = G.look(G.LS.get('dg.save.' + a.id, {}) || {}, {});
+      });
       var n = G.accounts.list().length;
       setTimeout(function () {
         if (G.current !== 'accesso') return;
@@ -5726,7 +6542,7 @@ html, body {
         if (window.A && A.panel) A.panel(c, x, y + wob, cw, ch, { r: 28 });
         else { c.fillStyle = C.cream; G.roundRect(c, x, y + wob, cw, ch, 28); c.fill(); }
         c.restore();
-        dinoPreview(c, x + cw / 2, y + wob + 236, 176, a.color, hatCache[a.id] || null);
+        dinoPreview(c, x + cw / 2, y + wob + 236, 176, a.color, lookCache[a.id] || null);
         G.text(a.name, x + cw / 2, y + wob + 282, { size: 34, color: C.ink, maxWidth: cw - 26 });
         // age badge
         c.save();
@@ -5786,13 +6602,13 @@ html, body {
   });
 
   /* ------------------------------------------------------- scene: segreto */
-  var sg = { id: null, taps: [], shake: 0, fails: 0, hat: null };
+  var sg = { id: null, taps: [], shake: 0, fails: 0, look: null };
 
   G.scene('segreto', {
     hud: false, back: false,
     enter: function (p) {
       sg.id = p && p.id; sg.taps = []; sg.shake = 0; sg.fails = 0;
-      sg.hat = sg.id ? ((G.LS.get('dg.save.' + sg.id, {}) || {}).hat || null) : null;
+      sg.look = sg.id ? G.look(G.LS.get('dg.save.' + sg.id, {}) || {}, {}) : null;
       var a = G.accounts.byId(sg.id);
       setTimeout(function () {
         if (G.current !== 'segreto') return;
@@ -5805,7 +6621,7 @@ html, body {
       if (!a) { G.go('accesso'); return; }
       backdrop(c, null);
 
-      dinoPreview(c, 250, 470, 250, a.color, sg.hat, sg.shake > 0 ? 'think' : 'idle');
+      dinoPreview(c, 250, 470, 250, a.color, sg.look, sg.shake > 0 ? 'think' : 'idle');
       G.text('Ciao ' + a.name + '!', 250, 200, { size: 52, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 10 });
       G.text('Tocca il tuo segreto', 250, 258, { size: 30, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 8, weight: 700 });
 
@@ -6057,7 +6873,7 @@ html, body {
       c.restore();
 
       if (a) {
-        dinoPreview(c, 260, 366, 210, a.color, G.save.hat);
+        dinoPreview(c, 260, 366, 210, a.color);   // current player: A.dino reads the live save
         G.text(a.name, 260, 410, { size: 40, color: C.ink });
         G.text(a.level === 2 ? 'Grande (5-7 anni)' : 'Piccolo (3-4 anni)', 260, 452, { size: 24, color: '#7a6a58', weight: 700 });
         G.text('Frutti ' + Math.floor(G.save.fruits) + '   Stelline ' + Math.floor(G.save.stars), 260, 496, { size: 24, color: C.ink, weight: 800 });

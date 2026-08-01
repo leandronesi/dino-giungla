@@ -117,10 +117,14 @@
   /* ------------------------------------------------------------- stations */
   /* `go` is what the voice says to the little ones: the name alone is not an
      invitation, and each place needs its own article (alla / ai / al). */
+  /* `sway` is the phase of the idle wobble, so the signs never move in lockstep.
+     It used to be called `ph`, which drawStation() then overwrote with the
+     plaque height — after one frame every sign swayed with the same phase. */
   var STATIONS = [
-    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.175, ph: 0.0 },
-    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.505, ph: 1.9 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.860, ph: 3.7 }
+    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.175, sway: 0.0 },
+    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.505, sway: 1.9 },
+    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.655, sway: 5.5 },
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.860, sway: 3.7 }
   ];
 
   /* How much has been done in each place, for the badge the big one gets.
@@ -348,7 +352,38 @@
     c.restore();
   }
 
-  var ICONS = { conta: iconConta, fili: iconFili, nido: iconNido };
+  /* A chest with the lid open and something bright coming out of it. Deliberately
+     not a wardrobe: at r = 74 a cupboard is a brown rectangle, a chest is a
+     silhouette even a three-year-old reads. */
+  function iconGuardaroba(c, cx, cy, r) {
+    var w = r * 0.78, by = cy + r * 0.42;
+    c.save();
+    c.fillStyle = G.C.sun;                       // glow from inside
+    c.globalAlpha = 0.55;
+    c.beginPath(); c.ellipse(cx, by - r * 0.34, w * 0.86, r * 0.40, 0, 0, 7); c.fill();
+    c.globalAlpha = 1;
+    c.fillStyle = G.C.barkDark;                  // open lid, tipped back
+    c.beginPath();
+    c.moveTo(cx - w, by - r * 0.30);
+    c.quadraticCurveTo(cx, by - r * 1.16, cx + w, by - r * 0.52);
+    c.lineTo(cx + w * 0.86, by - r * 0.30);
+    c.quadraticCurveTo(cx, by - r * 0.86, cx - w * 0.86, by - r * 0.14);
+    c.closePath(); c.fill();
+    c.fillStyle = G.C.bark;                      // body
+    G.roundRect(c, cx - w, by - r * 0.28, w * 2, r * 0.62, r * 0.10); c.fill();
+    c.fillStyle = G.C.barkDark;
+    c.fillRect(cx - w, by - r * 0.04, w * 2, r * 0.13);
+    c.fillStyle = G.C.sun;                       // clasp
+    c.beginPath(); c.arc(cx, by + r * 0.03, r * 0.13, 0, 7); c.fill();
+    if (G.starPath) {                            // a star escaping the chest
+      c.fillStyle = G.C.sun;
+      G.starPath(c, cx + r * 0.44, by - r * 0.74, r * 0.20); c.fill();
+      G.starPath(c, cx - r * 0.30, by - r * 0.60, r * 0.13); c.fill();
+    }
+    c.restore();
+  }
+
+  var ICONS = { conta: iconConta, fili: iconFili, nido: iconNido, guardaroba: iconGuardaroba };
 
   function drawBadge(c, x, y, n) {
     c.save();
@@ -360,6 +395,30 @@
     c.stroke();
     G.starIcon(c, x - 23, y, 15);
     G.text(n > 99 ? '99+' : String(n), x + 17, y + 1, { ctx: c, size: 27, color: G.C.ink });
+    c.restore();
+  }
+
+  /* A present waiting at the Guardaroba. This is the one badge the little one
+     gets too: he cannot read the number, but a thing that pulses on a sign
+     means "something for you is over there", and that he understands. */
+  function drawCrateBadge(c, x, y, n) {
+    var k = 1 + Math.sin(G.t * 4) * 0.08;
+    c.save();
+    c.translate(x, y); c.scale(k, k); c.translate(-x, -y);
+    c.fillStyle = G.C.sun;
+    c.beginPath(); c.arc(x, y, 33, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(122,74,38,.55)'; c.lineWidth = 3; c.stroke();
+    c.fillStyle = G.C.barkDark;
+    G.roundRect(c, x - 17, y - 12, 34, 22, 4); c.fill();
+    c.fillStyle = G.C.bark;
+    G.roundRect(c, x - 15, y - 14, 30, 9, 3); c.fill();
+    c.fillStyle = G.C.sun;
+    c.beginPath(); c.arc(x, y - 2, 4, 0, 7); c.fill();
+    if (n > 1) {
+      G.text(String(Math.min(9, n)), x + 22, y + 18, {
+        ctx: c, size: 24, color: G.C.ink, stroke: 'rgba(255,246,224,.95)', strokeWidth: 6
+      });
+    }
     c.restore();
   }
 
@@ -381,7 +440,7 @@
 
     c.save();
     c.translate(cx, base);
-    c.rotate(Math.sin(G.t * 0.8 + st.ph) * 0.022);   // slow, gentle sway
+    c.rotate(Math.sin(G.t * 0.8 + st.sway) * 0.022);   // slow, gentle sway
     c.translate(-cx, -base);
 
     // ground contact
@@ -400,7 +459,7 @@
     // the little ones get a soft halo that keeps saying "tap me"
     if (!big) {
       c.fillStyle = G.C.sun;
-      c.globalAlpha = 0.14 + 0.10 * Math.sin(G.t * 2 + st.ph);
+      c.globalAlpha = 0.14 + 0.10 * Math.sin(G.t * 2 + st.sway);
       c.beginPath(); c.arc(cx, cy, r + 20, 0, 7); c.fill();
       c.globalAlpha = 1;
     }
@@ -438,8 +497,11 @@
       ctx: c, size: fs, color: G.C.ink, maxWidth: pw - 26
     });
 
-    // the big one can also read how much he has done in each place
-    if (big) {
+    var waiting = (st.id === 'guardaroba' && typeof G.crates === 'function') ? G.crates() : 0;
+    if (waiting > 0) {
+      drawCrateBadge(c, cx + r * 0.78, cy - r * 0.80, waiting);
+    } else if (big) {
+      // the big one can also read how much he has done in each place
       var n = progressOf(st.branch);
       if (n > 0) drawBadge(c, cx + r * 0.78, cy - r * 0.80, n);
     }
