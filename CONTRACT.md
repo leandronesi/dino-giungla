@@ -140,6 +140,7 @@ G.save.conta    // ramo libero del minigioco "Conta i Frutti"
 G.save.fili     // ramo libero del minigioco "Fili Intrecciati"
 G.save.nido     // ramo libero della base "Il Nido"
 G.save.guardaroba // ramo libero del "Guardaroba" (+ possiede hat/hats)
+G.save.casetta  // ramo libero della "Casetta"
 G.save.seen     // { nomeScena: bool } — per i tutorial una-tantum
 ```
 
@@ -210,6 +211,43 @@ Tre regole dure:
    dino cammina a sinistra. Le forme simmetriche reggono, i glifi no (vedi le
    `z` del sonno, disegnate fuori dalla trasformazione).
 
+## La casa (`src/01d-art-casa.js`)
+
+```js
+A.room(ctx, {wall, floor})    // il guscio: parete, battiscopa, pavimento
+A.house(ctx, id, x, y, s, o)  // un mobile, o = {c: indice colorway}
+A.houseFront(ctx, id, ...)    // il pezzo che va DAVANTI al dino (la coperta)
+A.HOUSE / A.HOUSE_FRONT       // i painter per id
+A.FLOOR / A.TILT / A.roomDepth(y) / A.roomShadow / A.panelAt / A.jungleIn
+```
+
+**Convenzione di ancoraggio: `(x, y)` è il PUNTO DI CONTATTO COL PAVIMENTO**, come
+`A.dino`. In giro ci sono già tre convenzioni (`A.egg` e `A.chick` sono centrate,
+`A.panel` prende l'angolo alto-sinistra): senza questa riga qualcuno userà il
+centro e ogni mobile galleggerà quaranta pixel sopra la sua ombra.
+
+**La legge prospettica**, che è ciò che tiene insieme quattordici oggetti disegnati
+a mano: `FLOOR = 470` è l'orizzonte (la stessa quota di `HORIZON` in 01b, così casa
+e giungla condividono la linea); **ogni disco orizzontale è un'ellisse di rapporto
+`TILT`**, senza eccezioni — se una forma non può esserlo, si disegna di fianco in
+elevazione pura; `roomDepth(y)` scala da 0.88 a 1.08 e non di più, perché le pareti
+sono ortografiche e un intervallo più largo si legge come "oggetti di dimensioni
+diverse", non "oggetti a distanze diverse".
+
+**Vietati, ognuno imparato a caro prezzo:** soffitti e lampadari (vogliono un punto
+di fuga che le pareti non hanno); sedie a quattro gambe (35 righe, tre piani, e ogni
+bambino sa com'è fatta una sedia, quindi ogni errore si vede — un pouf sono 8 righe
+ed è sempre giusto); tavoli e tappeti rettangolari (un rettangolo sul pavimento
+annuncia la proiezione che non stiamo facendo); `shadowBlur`; `Math.random`.
+
+### Le invarianti della Casetta sono verificate dal test
+
+`test/smoke.js` legge `src/24-casetta.js` e **fallisce** se trova una chiamata a
+`G.addFruits`/`G.addStars` (niente rubinetto: è l'unico posto a somma negativa del
+gioco), a `Date.now`/`catchUp` (niente orologio: nulla cambia mentre la scena non
+gira) o a `setLineDash` (niente sagome di cose non possedute — quel momento è del
+Nido). Non sono buoni propositi nei commenti: sono asserzioni.
+
 ---
 
 ## Scene da implementare
@@ -221,6 +259,7 @@ Tre regole dure:
 | `src/21-fili.js` | `fili` | "I Fili Intrecciati" — flow/pallini |
 | `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
 | `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
+| `src/24-casetta.js` | `casetta` | "La Casetta" — si arreda con i frutti |
 
 `src/90-boot.js` (già scritto) gestisce: scelta profilo, menu genitori, avvio.
 

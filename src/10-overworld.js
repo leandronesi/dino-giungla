@@ -136,7 +136,8 @@
     { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.075, sway: 0.0 },
     { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.275, sway: 1.9 },
     { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.495, sway: 5.5 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.715, sway: 3.7 }
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.715, sway: 3.7 },
+    { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.925, sway: 2.6 }
   ];
 
   /* How much has been done in each place, for the badge the big one gets.
@@ -198,7 +199,7 @@
     { k: 'bush', x: 1984, y: 522, s: 70, berries: false },
     { k: 'flower', x: 2118, y: 566, s: 36, c: '#8f5bd6' },
     { k: 'rock', x: 2246, y: 540, s: 44 },
-    { k: 'bush', x: 2372, y: 690, s: 96, berries: true },
+    { k: 'bush', x: 2186, y: 690, s: 96, berries: true },
     { k: 'flower', x: 1548, y: 684, s: 38, c: '#ff9f43' },
     { k: 'bush', x: 1900, y: 672, s: 88, berries: false },
     { k: 'rock', x: 2140, y: 700, s: 48 },
@@ -419,7 +420,43 @@
     c.restore();
   }
 
-  var ICONS = { conta: iconConta, fili: iconFili, nido: iconNido, guardaroba: iconGuardaroba };
+  /* A house with the window lit when somebody lives there. That is a state a
+     child can read without a number and without knowing how to read: the chicks
+     hatched at the Nido move in once there is somewhere to sit. */
+  function iconCasetta(c, cx, cy, r) {
+    var w = r * 0.74, h = r * 0.62, by = cy + r * 0.50;
+    var lived = (typeof G.casaOspiti === 'function') && G.casaOspiti() > 0;
+    c.save();
+    c.fillStyle = G.C.berry;                       // roof
+    c.beginPath();
+    c.moveTo(cx - w * 1.20, by - h);
+    c.lineTo(cx, by - h - r * 0.56);
+    c.lineTo(cx + w * 1.20, by - h);
+    c.closePath(); c.fill();
+    c.fillStyle = G.shade(G.C.berry, -30);
+    c.fillRect(cx - w * 1.20, by - h, w * 2.40, r * 0.10);
+    c.fillStyle = G.C.cream;                       // walls
+    G.roundRect(c, cx - w, by - h + r * 0.10, w * 2, h, r * 0.07); c.fill();
+    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.07;
+    G.roundRect(c, cx - w, by - h + r * 0.10, w * 2, h, r * 0.07); c.stroke();
+    c.fillStyle = G.C.bark;                        // door
+    G.roundRect(c, cx + w * 0.16, by - h * 0.50, w * 0.56, h * 0.50, r * 0.05); c.fill();
+    if (lived) {                                   // glow spilling out
+      c.globalAlpha = 0.55; c.fillStyle = G.C.sun;
+      c.beginPath(); c.arc(cx - w * 0.40, by - h * 0.50, r * 0.36, 0, 7); c.fill();
+      c.globalAlpha = 1;
+    }
+    c.fillStyle = lived ? G.C.sun : '#9fb6c4';     // window
+    G.roundRect(c, cx - w * 0.74, by - h * 0.80, w * 0.66, h * 0.52, r * 0.04); c.fill();
+    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.05;
+    G.roundRect(c, cx - w * 0.74, by - h * 0.80, w * 0.66, h * 0.52, r * 0.04); c.stroke();
+    c.restore();
+  }
+
+  var ICONS = {
+    conta: iconConta, fili: iconFili, nido: iconNido,
+    guardaroba: iconGuardaroba, casetta: iconCasetta
+  };
 
   function drawBadge(c, x, y, n) {
     c.save();

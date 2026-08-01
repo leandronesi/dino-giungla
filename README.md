@@ -9,8 +9,15 @@ in una giungla e si ferma in tre posti:
 | **I Fili Intrecciati** | unisci i pallini uguali senza incrociare i fili | *Flow Free* |
 | **Il Nido** | compri cespugli e nidi, producono frutti nel tempo, li raccogli | i gestionali/idle |
 | **Il Guardaroba** | vesti il tuo dino, e lui reagisce a quello che gli metti | i giochi di vestizione |
+| **La Casetta** | arredi una stanza coi frutti, e il dino ci abita davvero | i giochi di arredamento |
 
-I frutti si guadagnano giocando e si spendono al Nido. Le stelline riempiono le
+I frutti si guadagnano giocando e si spendono al Nido — e alla Casetta, che è il
+primo posto del gioco dove i frutti comprano qualcosa che **non** produce altri
+frutti. Prima era un cerchio chiuso: i frutti compravano produttori, che facevano
+altri frutti, e non c'era un motivo per averne che non fosse averne di più. Ora
+il Nido ha uno scopo fuori da sé stesso.
+
+Le stelline riempiono le
 **casse** del Guardaroba, dove si trovano cappelli, occhiali, papillon e fiocchi
 per il proprio dino: è quella la vera ricompensa.
 
@@ -149,8 +156,10 @@ src/10-overworld.js la giungla: il dino cammina fra le quattro postazioni
 src/20-conta.js     La Radura dei Numeri
 src/21-fili.js      I Fili Intrecciati (con generatore di griglie risolvibili)
 src/22-nido.js      Il Nido
+src/01d-art-casa.js il guscio della stanza, la legge prospettica e i mobili
 src/23-guardaroba.js Il Guardaroba: casse, baule dei giocattoli, specchio,
                     ritratti, e il dino del fratello in sola lettura
+src/24-casetta.js   La Casetta: il negozio, il dino che ci abita, gli ospiti
 src/90-account.js   accesso, nuovo giocatore, segreto, impostazioni genitori
 src/99-boot.js      avvio, schermo intero, wake lock
 ```

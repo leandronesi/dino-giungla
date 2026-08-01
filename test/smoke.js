@@ -260,13 +260,13 @@ phase = 'avvio';
 pump(20);
 if (!G.current) fail('nessuna scena attiva dopo l avvio');
 
-const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba'];
+const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'];
 const missing = expected.filter((s) => !G.sceneOf(s));
 if (missing.length) fail('scene mancanti: ' + missing.join(', '));
 
 if (!sandbox.A) fail('namespace A (grafica) assente');
 else {
-  const need = ['dino', 'jungle', 'canopy', 'fruit', 'egg', 'chick', 'bush', 'tree', 'flower', 'rock', 'cloud', 'panel', 'sign', 'star', 'hat', 'HATS', 'SHAPES', 'gear', 'GEAR', 'gearOf', 'SLOTS'];
+  const need = ['dino', 'jungle', 'canopy', 'fruit', 'egg', 'chick', 'bush', 'tree', 'flower', 'rock', 'cloud', 'panel', 'sign', 'star', 'hat', 'HATS', 'SHAPES', 'gear', 'GEAR', 'gearOf', 'SLOTS', 'house', 'HOUSE', 'room', 'roomDepth'];
   const miss = need.filter((k) => sandbox.A[k] === undefined);
   if (miss.length) fail('A.* mancanti: ' + miss.join(', '));
   if (sandbox.A.HATS && sandbox.A.HATS.length < 6) fail('A.HATS ha solo ' + sandbox.A.HATS.length + ' cappelli');
@@ -290,7 +290,7 @@ if (!G.account) fail('iscrizione non ha creato/collegato un account');
 else if (G.current !== 'giungla') fail('dopo l iscrizione la scena e "' + G.current + '" invece di giungla');
 
 // 2. every scene, at both levels, with a fuzz of taps and drags
-const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'genitori', 'gate', 'accesso'];
+const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'genitori', 'gate', 'accesso'];
 [1, 2].forEach((lvl) => {
   if (!G.account) return;
   G.accounts.update(G.account.id, { level: lvl });
@@ -407,11 +407,83 @@ if (G.sceneOf('guardaroba')) {
   if (countOwned() > 14) fail('il catalogo e stato superato: ' + countOwned());
 }
 
+// 4c. La Casetta. Three of its design promises are enforceable by reading the
+//     source, so they are assertions here instead of hopes in a comment.
+phase = 'casetta';
+{
+  // comments are stripped first: the file DESCRIBES these invariants in prose,
+  // so a naive grep finds the promise instead of a violation of it
+  const casaSrc = fs.readFileSync(path.join(SRC, '24-casetta.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  if (/G\.addFruits\s*\(|G\.addStars\s*\(/.test(casaSrc)) fail('la Casetta ha un rubinetto: non deve MAI dare valuta');
+  if (/Date\.now\s*\(|catchUp\s*\(/.test(casaSrc)) fail('la Casetta ha un orologio: niente deve cambiare mentre la scena non gira');
+  if (/setLineDash\s*\(/.test(casaSrc)) fail('la Casetta disegna sagome di cose non possedute: quel momento e del Nido');
+}
+
+if (G.sceneOf('casetta')) {
+  const casa = G.accounts.create({ name: 'Casa', color: '#57c98a', level: 2, secret: null });
+  G.accounts.login(casa.id);
+  G.go('giungla'); pump(40); closeOverlayIfOpen('Casa');
+
+  G.save.fruits = 6000;
+  G.save.nido = { items: { uova: { n: 1, lvl: 1, t: 0, pend: 0, egg: 0, chicks: 4 } }, lastSeen: 0 };
+  const nidoBefore = JSON.stringify(G.save.nido);
+
+  G.go('casetta'); pump(60);
+  if (G.current !== 'casetta') fail('non sono entrato nella casetta (sono in "' + G.current + '")');
+  if (typeof G.casaOspiti !== 'function') fail('G.casaOspiti assente: la giungla accende la finestra con quella');
+
+  const fruitsBefore = G.save.fruits;
+  tap(1180, 636); pump(12);                       // open the cart
+  [[720, 350], [928, 350], [1136, 350], [720, 566], [928, 566], [1136, 566]].forEach(([cx, cy]) => {
+    tap(cx, cy); pump(14);
+  });
+  pump(40);
+
+  const casaSave = G.save.casetta || {};
+  const items = Array.isArray(casaSave.items) ? casaSave.items : null;
+  if (!items) fail('G.save.casetta.items non e un array');
+  else {
+    if (items.length < 2) fail('nessun mobile comprato con 6000 frutti: ' + items.length);
+    if (items.length > 14) fail('superato il tetto dei 14 pezzi: ' + items.length);
+  }
+  if (G.save.fruits >= fruitsBefore) fail('comprare non ha speso frutti: ' + fruitsBefore + ' -> ' + G.save.fruits);
+  if (G.save.fruits < 0) fail('frutti negativi: ' + G.save.fruits);
+  if (JSON.stringify(G.save.nido) !== nidoBefore) fail('la Casetta ha scritto nel ramo del Nido (deve leggerlo e basta)');
+  if (G.casaOspiti() > 4) fail('piu ospiti dei pulcini nati: ' + G.casaOspiti());
+
+  // fruits must never go up in here, whatever the fuzz touches
+  const before = G.save.fruits;
+  for (let i = 0; i < 120; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(3); }
+  if (G.save.fruits > before) fail('i frutti sono AUMENTATI nella Casetta: ' + before + ' -> ' + G.save.fruits);
+  if (JSON.stringify(G.save.nido) !== nidoBefore) fail('il fuzz nella Casetta ha scritto nel ramo del Nido');
+
+  // level 1 must never drag a piece around
+  G.accounts.update(casa.id, { level: 1 }); G.level = 1;
+  G.go('giungla'); pump(20); G.go('casetta'); pump(40);
+  /* Only the pieces that were already there: a stray tap can land on the shop
+     strip and legitimately BUY something, which grows the array. What must not
+     happen is an existing piece MOVING. */
+  const snap = (G.save.casetta.items || []).map((it) => it.id + '@' + it.x + ',' + it.y);
+  for (let i = 0; i < 40; i++) {
+    drag(200 + Math.random() * 900, 500 + Math.random() * 180, 200 + Math.random() * 900, 500 + Math.random() * 180, 6);
+    pump(3);
+  }
+  const after = (G.save.casetta.items || []).map((it) => it.id + '@' + it.x + ',' + it.y);
+  for (let i = 0; i < snap.length; i++) {
+    if (after[i] !== snap[i]) {
+      fail('a livello 1 il trascinamento ha spostato un mobile: ' + snap[i] + ' -> ' + after[i]);
+      break;
+    }
+  }
+}
+
 // 5. a fresh account with an empty save must not explode anywhere
 phase = 'salvataggio vuoto';
 const fresh = G.accounts.create({ name: 'Vuoto', color: '#57c98a', level: 2, secret: null });
 G.accounts.login(fresh.id);
-['giungla', 'conta', 'fili', 'nido', 'guardaroba'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'].forEach((s) => {
   phase = s + ' (save vuoto)';
   G.go(s); pump(40);
   for (let i = 0; i < 40; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
@@ -423,7 +495,7 @@ G.save.conta = { done: 'sette' };
 G.save.fili = { done: -3, size: 99 };
 G.save.nido = { items: null, lastSeen: 'ieri' };
 G.save.hats = null;
-['giungla', 'conta', 'fili', 'nido', 'guardaroba'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'].forEach((s) => {
   phase = s + ' (save corrotto)';
   G.go(s); pump(40);
   for (let i = 0; i < 30; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
