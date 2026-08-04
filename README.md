@@ -10,7 +10,7 @@ in una giungla e si ferma in sei posti:
 | **Il Nido** | compri cespugli e nidi, producono frutti nel tempo, li raccogli | i gestionali/idle |
 | **Il Guardaroba** | vesti il tuo dino, e lui reagisce a quello che gli metti | i giochi di vestizione |
 | **La Casetta** | arredi due stanze coi frutti, e il dino ci abita davvero | i giochi di arredamento |
-| **La Pista dei Gusci** | corri in un guscio d'uovo con quattro amici, e non si perde mai | i kart game |
+| **Il Girotondo** | fai il giro in un guscio d'uovo con quattro amici, e non si perde mai | le giostre |
 
 I frutti si guadagnano giocando e si spendono al Nido — e alla Casetta, che è il
 primo posto del gioco dove i frutti comprano qualcosa che **non** produce altri
@@ -167,7 +167,7 @@ src/01d-art-casa.js il guscio della stanza, la legge prospettica e i mobili
 src/23-guardaroba.js Il Guardaroba: casse, baule dei giocattoli, specchio,
                     ritratti, e il dino del fratello in sola lettura
 src/24-casetta.js   La Casetta: due stanze, il negozio, il dino che ci abita
-src/25-kart.js      La Pista: pista analitica, gara senza sconfitta, amici
+src/25-kart.js      Il Girotondo: anello analitico, giro senza sconfitta, amici
 src/90-account.js   accesso, nuovo giocatore, segreto, impostazioni genitori
 src/99-boot.js      avvio, schermo intero, wake lock
 ```

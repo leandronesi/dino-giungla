@@ -135,7 +135,7 @@
   var STATIONS = [
     { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.075, sway: 0.0 },
     { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.245, sway: 1.9 },
-    { id: 'kart', name: 'La Pista', go: 'Andiamo alla Pista!', branch: 'kart', at: 0.415, sway: 4.4 },
+    { id: 'kart', name: 'Il Girotondo', go: 'Andiamo al Girotondo!', branch: 'kart', at: 0.415, sway: 4.4 },
     { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.585, sway: 5.5 },
     { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.755, sway: 3.7 },
     { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.925, sway: 2.6 }

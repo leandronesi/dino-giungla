@@ -1,7 +1,12 @@
-/* Dino Giungla — "La Pista dei Gusci" (scene: kart).
+/* Dino Giungla — "Il Girotondo" (scene: kart).
 
-   A race a three-year-old cannot lose, and a six-year-old can actually get good
-   at. Owns G.save.kart.
+   NOT a kart game, and the name says so on purpose. It is a merry-go-round: a
+   ring of track where five friends go round together, nobody can lose, and the
+   little one gets there just by touching the screen.
+   A real racer needs a view from behind the kart, real steering, and the
+   possibility of being overtaken — and all three are forbidden by this game's
+   contract, so a real racer belongs in its own project, not here.
+   Owns G.save.kart.
 
    THREE CONSTRUCTION DECISIONS DO ALL THE WORK. Everything else follows.
 
