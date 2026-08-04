@@ -522,6 +522,37 @@
     void col;
   }
 
+  /* The door between the two rooms. Pure elevation, no vanishing point, so it
+     obeys the same ban on perspective as everything else in this file.
+     `o.side` is -1 for a door on the left wall, 1 for the right. */
+  A.porta = function (c, cx, groundY, s, o) {
+    o = o || {};
+    var side = o.side === -1 ? -1 : 1;
+    var w = s * 0.62, h = s * 1.30, lw = _lw(s);
+    var top = groundY - h;
+    c.save();
+    c.fillStyle = _shade(C.bark || '#7a4a26', -34);          // frame
+    G.roundRect(c, cx - w / 2 - 10, top - 10, w + 20, h + 10, 10); c.fill();
+    c.fillStyle = '#3a2414';                                  // the dark beyond
+    G.roundRect(c, cx - w / 2, top, w, h, 6); c.fill();
+    c.save();                                                 // a warm sliver of the next room
+    G.roundRect(c, cx - w / 2, top, w, h, 6); c.clip();
+    c.globalAlpha = 0.5;
+    c.fillStyle = C.sun || '#ffd75e';
+    c.fillRect(cx - w / 2, top, w * 0.34, h);
+    c.restore();
+    c.fillStyle = C.bark || '#7a4a26';                        // the leaf, ajar
+    G.roundRect(c, cx - w / 2 + w * 0.34, top, w * 0.66, h, 5); c.fill();
+    c.strokeStyle = INK; c.lineWidth = lw * 0.9;
+    G.roundRect(c, cx - w / 2 + w * 0.34, top, w * 0.66, h, 5); c.stroke();
+    c.fillStyle = C.sun || '#ffd75e';                         // handle
+    c.beginPath();
+    c.arc(cx - w / 2 + w * 0.46, groundY - h * 0.48, s * 0.045, 0, TAU);
+    c.fill();
+    c.restore();
+    void side;
+  };
+
   A.HOUSE = {
     tappeto: pTappeto, ciotola: pCiotola, pouf: pPouf, pianta: pPianta,
     lampada: pLampada, finestra: pFinestra, lettino: pLettino,

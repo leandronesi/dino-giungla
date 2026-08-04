@@ -299,6 +299,7 @@ const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'ge
     phase = s + ' L' + lvl;
     G.go(s, s === 'gate' ? { then: 'giungla', back: 'giungla' } : null);
     pump(30);
+    if (G.current !== s) { G.go(s, s === 'gate' ? { then: 'giungla', back: 'giungla' } : null); pump(40); }
     if (G.current !== s) { fail('non sono riuscito a entrare (sono in "' + G.current + '")'); return; }
     drawCount = 0;
     pump(30);
@@ -435,8 +436,9 @@ if (G.sceneOf('casetta')) {
   if (typeof G.casaOspiti !== 'function') fail('G.casaOspiti assente: la giungla accende la finestra con quella');
 
   const fruitsBefore = G.save.fruits;
-  tap(1180, 636); pump(12);                       // open the cart
-  [[720, 350], [928, 350], [1136, 350], [720, 566], [928, 566], [1136, 566]].forEach(([cx, cy]) => {
+  // Salotto has its door on the right, so the tool column sits on the LEFT wall
+  tap(104, 636); pump(12);                        // open the cart
+  [[330, 350], [538, 350], [746, 350], [330, 566], [538, 566], [746, 566]].forEach(([cx, cy]) => {
     tap(cx, cy); pump(14);
   });
   pump(40);
@@ -446,12 +448,36 @@ if (G.sceneOf('casetta')) {
   if (!items) fail('G.save.casetta.items non e un array');
   else {
     if (items.length < 2) fail('nessun mobile comprato con 6000 frutti: ' + items.length);
-    if (items.length > 14) fail('superato il tetto dei 14 pezzi: ' + items.length);
+    if (items.length > 16) fail('superato il tetto degli 8 pezzi per stanza: ' + items.length);
+    const badRoom = items.filter((it) => it.r !== 0 && it.r !== 1);
+    if (badRoom.length) fail('pezzi senza stanza valida: ' + JSON.stringify(badRoom[0]));
+    [0, 1].forEach((r) => {
+      const n = items.filter((it) => it.r === r).length;
+      if (n > 8) fail('stanza ' + r + ' con ' + n + ' pezzi, il tetto e 8');
+    });
   }
   if (G.save.fruits >= fruitsBefore) fail('comprare non ha speso frutti: ' + fruitsBefore + ' -> ' + G.save.fruits);
   if (G.save.fruits < 0) fail('frutti negativi: ' + G.save.fruits);
   if (JSON.stringify(G.save.nido) !== nidoBefore) fail('la Casetta ha scritto nel ramo del Nido (deve leggerlo e basta)');
   if (G.casaOspiti() > 4) fail('piu ospiti dei pulcini nati: ' + G.casaOspiti());
+
+  /* The door is the biggest risk in the two-room design: if it does not work,
+     the child buys furniture for a room he can never see. Salotto has its door
+     on the right at x=1204, Nanna on the left at x=76. */
+  tap(104, 636); pump(12);            // close the cart with its own button:
+                                      // a tap "outside" can land within hitTest slop of a cell
+  const roomBefore = G.save.casetta.room;
+  tap(1204, 350); pump(50);
+  if (G.save.casetta.room === roomBefore) fail('la porta non porta nella seconda stanza');
+  else {
+    tap(76, 350); pump(50);
+    if (G.save.casetta.room !== roomBefore) fail('dalla seconda stanza non si torna indietro');
+  }
+  // both rooms must actually hold something, or half the catalogue is invisible
+  [0, 1].forEach((r) => {
+    const n = (G.save.casetta.items || []).filter((it) => it.r === r).length;
+    if (!n) fail('la stanza ' + r + ' e vuota: meta del catalogo non si vede mai');
+  });
 
   // fruits must never go up in here, whatever the fuzz touches
   const before = G.save.fruits;

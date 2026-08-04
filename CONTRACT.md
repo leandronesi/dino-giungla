@@ -240,6 +240,13 @@ bambino sa com'è fatta una sedia, quindi ogni errore si vede — un pouf sono 8
 ed è sempre giusto); tavoli e tappeti rettangolari (un rettangolo sul pavimento
 annuncia la proiezione che non stiamo facendo); `shadowBlur`; `Math.random`.
 
+**Due stanze, e il catalogo si spezza — mai si duplica.** I dodici mobili da
+pavimento sono 2.226px contro 1.100px di banda: con una stanza sola la
+sovrapposizione era aritmetica. Divisi su due stanze da due corsie ciascuna
+(fondo `y≈524`, fronte `y≈666`) nessuna corsia supera il 63%, e nessuna coppia di
+posizioni-base sta sotto i 140px. Se un domani ogni stanza volesse il *suo*
+catalogo, si torna al costo d'arte che aveva fatto scegliere una stanza sola.
+
 ### Le invarianti della Casetta sono verificate dal test
 
 `test/smoke.js` legge `src/24-casetta.js` e **fallisce** se trova una chiamata a
@@ -259,7 +266,7 @@ Nido). Non sono buoni propositi nei commenti: sono asserzioni.
 | `src/21-fili.js` | `fili` | "I Fili Intrecciati" — flow/pallini |
 | `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
 | `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
-| `src/24-casetta.js` | `casetta` | "La Casetta" — si arreda con i frutti |
+| `src/24-casetta.js` | `casetta` | "La Casetta" — due stanze da arredare coi frutti |
 
 `src/90-boot.js` (già scritto) gestisce: scelta profilo, menu genitori, avvio.
 
