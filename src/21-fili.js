@@ -372,7 +372,9 @@
 
   /* Reused every frame so the draw path allocates nothing. */
   var JUNGLE_OPT = { dim: .28 };
-  var DINO_OPT = { facing: 1, t: 0, hat: null, color: C.dino, pose: 'idle' };
+  // No `hat` and no `gear`: this is the CURRENT player, so A.dino reads the live
+  // save and the glasses and the bow tie come along too (see CONTRACT.md).
+  var DINO_OPT = { facing: 1, t: 0, color: C.dino, pose: 'idle' };
   var PANEL_OPT = { r: 28 }, WIN_PANEL_OPT = { r: 34 };
 
   /* A cell is the tap target, so it must never drop under 96 logical px:
@@ -433,6 +435,27 @@
 
   function kindOf(k) { return KINDS[(kinds[k] | 0) % KINDS.length] || KINDS[0]; }
   function colOf(k) { return kindOf(k).col; }
+  /* The empty cells, once every pair is joined and only at level 2. Not a
+     scolding and not a lock: the threads stay where they are, the child just
+     has to stretch one of them a bit further. A grid-filling solution always
+     exists, so this can never be a dead end. */
+  function drawGaps(c) {
+    if (won || G.level !== 2 || !own || !allClosed() || fullGrid()) return;
+    var i, r, cc, k = 0.30 + Math.sin(pulse * 5) * 0.22;
+    c.save();
+    for (i = 0; i < own.length; i++) {
+      if (own[i] >= 0) continue;
+      r = Math.floor(i / n); cc = i % n;
+      c.globalAlpha = k;
+      c.fillStyle = C.sun;
+      c.beginPath(); c.arc(cxOf(cc), cyOf(r), cs * 0.24, 0, 6.2832); c.fill();
+      c.globalAlpha = k * 1.5;
+      c.strokeStyle = C.cream; c.lineWidth = 4;
+      c.beginPath(); c.arc(cxOf(cc), cyOf(r), cs * 0.32, 0, 6.2832); c.stroke();
+    }
+    c.restore();
+  }
+
   function cxOf(c) { return gx + c * cs + cs / 2; }
   function cyOf(r) { return gy + r * cs + cs / 2; }
   function idxIn(cells, r, c) {
@@ -475,9 +498,39 @@
     if (G.level === 1) G.say(kk.name + '!');
   }
 
+  function allClosed() {
+    for (var i = 0; i < lines.length; i++) if (!lines[i].closed) return false;
+    return true;
+  }
+  function fullGrid() {
+    for (var i = 0; i < own.length; i++) if (own[i] < 0) return false;
+    return true;
+  }
+
+  var nearT = 0;              // all pairs joined, but the grid is not full yet
+
   function checkWin() {
     var i;
-    for (i = 0; i < lines.length; i++) if (!lines[i].closed) return;
+    if (!allClosed()) return;
+
+    /* Level 2 has to fill the WHOLE grid, and that is the rule this generator
+       was built for: every puzzle is a partition of all the cells into paths,
+       so a grid-filling solution always exists by construction — validate()
+       ends with `count === total`. Joining the dots was a weaker condition than
+       what the generator already guaranteed.
+       Level 1 keeps the gentler rule on purpose. On a 3x3 with two pairs,
+       covering every cell is far harder than joining the dots, and a
+       three-year-old who has joined everything and sees nothing happen has met
+       a failure state wearing a friendly face. */
+    if (G.level === 2 && !fullGrid()) {
+      if (nearT <= 0) {
+        nearT = 2.6;
+        G.sfx('pop');
+        G.say(G.pick(['Manca ancora un pezzetto!', 'Riempi tutta la griglia!', 'Quasi! Resta un buchino.']));
+      }
+      return;
+    }
+
     var f = branch();
     f.done = f.done + 1; f.size = n; f.pairs = pairs;
     G.saveNow();
@@ -789,6 +842,7 @@
       var i;
       pulse += dt;
       for (i = 0; i < lines.length; i++) if (lines[i].glow > 0) lines[i].glow = Math.max(0, lines[i].glow - dt * 1.6);
+      if (nearT > 0) nearT = Math.max(0, nearT - dt);
       if (won) {
         winT += dt;
         if (!spoke && winT > .8) {
@@ -804,7 +858,6 @@
       else { c.fillStyle = bgGrad || C.leafDark; c.fillRect(0, 0, W, H); }
       if (Art && typeof Art.dino === 'function') {
         DINO_OPT.t = G.t;
-        DINO_OPT.hat = G.save.hat;
         DINO_OPT.color = (G.account && G.account.color) || C.dino;
         DINO_OPT.pose = won ? 'happy' : (active >= 0 ? 'think' : 'idle');
         Art.dino(c, 104, 692, 176, DINO_OPT);
@@ -820,6 +873,7 @@
         c.beginPath(); c.arc(cxOf(head[1]), cyOf(head[0]), cs * .40, 0, 6.2832); c.stroke();
         c.restore();
       }
+      drawGaps(c);
       drawSide(c);
       if (won && winT > .85) drawWinPanel(c);
     },
