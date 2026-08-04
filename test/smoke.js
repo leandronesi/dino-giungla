@@ -574,6 +574,19 @@ if (G.sceneOf('bus')) {
   ELS.c.dispatch('pointerup', pev(640, 500));
   pump(40);
 
+  /* And now the way a child actually plays: tap, tap, tap — never a clean hold.
+     The bus used to dead-end beside the fruit pump, where every tap topped up
+     the tank instead of setting off, and there was no way out of it. */
+  G.go('giungla'); pump(30); G.go('bus'); pump(50);
+  const beforeTap = (G.save.bus || {}).done || 0;
+  for (let i = 0; i < 3000; i++) {
+    if (i % 9 === 0) tap(640, 500);
+    pump(1);
+  }
+  if (((G.save.bus || {}).done || 0) <= beforeTap) {
+    fail('a tocchi ripetuti il viaggio non finisce mai: il pulmino si e incastrato');
+  }
+
   const b = G.save.bus || {};
   if (typeof b.done !== 'number') fail('G.save.bus.done non e un numero');
   if (G.save.fruits <= 0) fail('nessun passeggero consegnato in tutto il percorso');

@@ -81,12 +81,12 @@
   /* ---------------------------------------------------------------- state */
   var S = {
     phase: 'guida',       // 'guida' | 'garage' | 'fine'
-    x: 0, spd: 0, held: false, spin: 0,
+    x: 0, spd: 0, held: false, gasLatch: 0, spin: 0,
     stops: [], jobs: [], riders: [], waiting: [],
     dirt: 0, tank: 1,
     doorT: 0, atStop: -1,
     delivered: 0, banked: 0,
-    sayT: 0, sayMsg: null, idle: 0, nudges: 0,
+    sayT: 0, sayMsg: null, idle: 0, nudges: 0, stuck: 0,
     tilt: 0
   };
 
@@ -117,9 +117,9 @@
 
   function reset() {
     S.phase = 'guida';
-    S.x = 0; S.spd = 0; S.held = false; S.spin = 0;
+    S.x = 0; S.spd = 0; S.held = false; S.gasLatch = 0; S.spin = 0;
     S.dirt = 0; S.tank = 1; S.doorT = 0; S.atStop = -1;
-    S.delivered = 0; S.banked = 0; S.idle = 0; S.nudges = 0; S.tilt = 0;
+    S.delivered = 0; S.banked = 0; S.idle = 0; S.nudges = 0; S.tilt = 0; S.stuck = 0;
     S.sayMsg = null; S.sayT = 0;
     build();
   }
@@ -162,10 +162,19 @@
       /* Safety net: window.blur zeroes pointer.down without calling onUp. */
       if (!G.pointer || !G.pointer.down) S.held = false;
 
+      /* THE GAS LATCHES, and this is not a nicety. A three-year-old taps, he
+         does not hold: one tap keeps the finger down for a single frame, and
+         over the eight released frames that follow, braking at 520/s eats the
+         whole 340/s of acceleration — so tapping moved the bus exactly nowhere.
+         One tap is now worth 0.9s of throttle, so hammering, holding, and
+         anything in between all drive. */
+      S.gasLatch = Math.max(0, S.gasLatch - dt);
+      var going = S.held || S.gasLatch > 0;
+
       var gate = S.jobs.filter(function (o) { return o.kind === 'gate'; })[0];
       var blocked = gate && gate.open < 0.9 && S.x > gate.x - 150 && S.x < gate.x + 40;
 
-      var want = (S.held && !blocked) ? speedMax() : 0;
+      var want = (going && !blocked) ? speedMax() : 0;
 
       /* THE BUS PARKS ITSELF wherever there is something to do. Asking a
          three-year-old to let go at exactly the right spot is precision, and
@@ -184,6 +193,17 @@
       }
       S.spd += G.clamp(want - S.spd, -520 * dt, 340 * dt);
       S.spd = Math.max(0, S.spd);
+
+      /* Last-resort anti-deadlock. No situation in this scene may end with a
+         child holding the screen and nothing happening: if the finger is down,
+         the bus is not moving, and there is nothing to wait for here, push it
+         along regardless of why. */
+      if (going && S.spd < 6 && duty < 0 && !blocked) {
+        S.stuck += dt;
+        if (S.stuck > 1.5) { S.spd = 130; S.stuck = 0; }
+      } else {
+        S.stuck = 0;
+      }
       S.x += S.spd * dt;
       S.spin += S.spd * dt / 26;
       S.tilt += ((S.held ? -0.03 : 0) - S.tilt) * Math.min(1, dt * 6);
@@ -226,7 +246,7 @@
       /* A nudge that shows instead of telling: the bus creeps forward by itself
          so a three-year-old sees what the screen is for. */
       S.idle += dt;
-      if (!big() && S.spd < 5 && S.idle > 9 && S.nudges < 2) {
+      if (!big() && S.spd < 5 && S.idle > 9 && S.nudges < 2 && duty < 0) {
         S.idle = 0; S.nudges++;
         say('Tieni il dito sullo schermo per andare!', 0);
         S.spd = 90;
@@ -239,21 +259,22 @@
       S.idle = 0;
       if (S.phase !== 'guida') return;
 
-      // the gate: one tap and it lifts
+      /* A tap does the job here AND drives, never one instead of the other.
+         These two branches used to `return` before setting S.held, which meant
+         that standing next to the pump every single tap topped up the tank and
+         the bus could never set off again — a dead end you could not get out of,
+         which is the worst thing this game can do. */
       var gate = S.jobs.filter(function (o) { return o.kind === 'gate'; })[0];
       if (gate && gate.open <= 0 && Math.abs(S.x - gate.x) < 220) {
         gate.open = 0.01; G.sfx('pop'); say('Apriti!', 0);
-        return;
       }
-      // the pump: touch it while stopped next to it and the tank fills
       var pump = S.jobs.filter(function (o) { return o.kind === 'pump'; })[0];
-      if (pump && Math.abs(S.x - pump.x) < 150 && S.spd < 20) {
+      if (pump && Math.abs(S.x - pump.x) < 150 && S.spd < 20 && S.tank < 0.98) {
         S.tank = 1; pump.done = 1;
         G.sfx('coin'); G.fx.confetti();
         say('Pieno di frutta!', 0);
-        return;
       }
-      S.held = true;
+      S.held = true; S.gasLatch = 0.9;
     },
 
     onUp: function () { S.held = false; },
