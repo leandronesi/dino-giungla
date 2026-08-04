@@ -12,7 +12,7 @@
      the left edge and colliding with each other — and a fifth place would have
      been impossible. Two arrows jump between the halves for anyone who does not
      want to walk. */
-  var WORLD_W = 2560;
+  var WORLD_W = 3480;
   var MAXCAM = WORLD_W - 1280;
   var cam = 0;              // current camera x, world coordinates
   var camHold = null;       // an arrow pinned the view here; walking releases it
@@ -24,7 +24,9 @@
     [96, 664], [214, 628], [318, 568], [432, 552], [548, 598],
     [666, 640], [788, 622], [880, 560], [978, 514], [1096, 496], [1198, 528],
     [1320, 588], [1444, 632], [1566, 614], [1680, 554], [1794, 510],
-    [1912, 526], [2030, 586], [2150, 634], [2272, 602], [2384, 546], [2470, 592]
+    [1912, 526], [2030, 586], [2150, 634], [2272, 602], [2384, 546], [2470, 592],
+    [2596, 640], [2718, 624], [2836, 566], [2952, 516], [3070, 532],
+    [3186, 594], [3300, 634], [3392, 596]
   ];
 
   function crv(p0, p1, p2, p3, t) {           // Catmull-Rom, one axis
@@ -133,11 +135,12 @@
      It used to be called `ph`, which drawStation() then overwrote with the
      plaque height — after one frame every sign swayed with the same phase. */
   var STATIONS = [
-    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.075, sway: 0.0 },
-    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.245, sway: 1.9 },
-    { id: 'kart', name: 'Il Girotondo', go: 'Andiamo al Girotondo!', branch: 'kart', at: 0.415, sway: 4.4 },
-    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.585, sway: 5.5 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.755, sway: 3.7 },
+    { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.055, sway: 0.0 },
+    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.200, sway: 1.9 },
+    { id: 'kart', name: 'Il Girotondo', go: 'Andiamo al Girotondo!', branch: 'kart', at: 0.345, sway: 4.4 },
+    { id: 'bus', name: 'Il Pulmino', go: 'Andiamo col Pulmino!', branch: 'bus', at: 0.490, sway: 2.1 },
+    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.635, sway: 5.5 },
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.780, sway: 3.7 },
     { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.925, sway: 2.6 }
   ];
 
@@ -176,7 +179,13 @@
     { x: 1908, y: 478, s: 196, kind: 'grande' },
     { x: 2094, y: 458, s: 172, kind: 'felce' },
     { x: 2258, y: 480, s: 206, kind: 'palma' },
-    { x: 2448, y: 512, s: 246, kind: 'grande' }
+    { x: 2448, y: 512, s: 246, kind: 'grande' },
+    { x: 2620, y: 474, s: 182, kind: 'palma' },
+    { x: 2790, y: 490, s: 210, kind: 'grande' },
+    { x: 2968, y: 456, s: 170, kind: 'felce' },
+    { x: 3130, y: 482, s: 198, kind: 'palma' },
+    { x: 3320, y: 508, s: 240, kind: 'grande' },
+    { x: 3440, y: 470, s: 176, kind: 'felce' }
   ];
   /* props sit beside the trail; kept sorted by y so the dino can slot in by depth */
   var PROPS = [
@@ -204,7 +213,16 @@
     { k: 'flower', x: 1548, y: 684, s: 38, c: '#ff9f43' },
     { k: 'bush', x: 1900, y: 672, s: 88, berries: false },
     { k: 'rock', x: 2140, y: 700, s: 48 },
-    { k: 'bush', x: 2520, y: 712, s: 104, berries: true }
+    { k: 'bush', x: 2520, y: 712, s: 104, berries: true },
+    { k: 'flower', x: 2660, y: 552, s: 34, c: '#ff6fae' },
+    { k: 'rock', x: 2812, y: 536, s: 42 },
+    { k: 'bush', x: 2930, y: 560, s: 74, berries: true },
+    { k: 'flower', x: 3080, y: 506, s: 32, c: '#ffd75e' },
+    { k: 'rock', x: 3230, y: 548, s: 38 },
+    { k: 'bush', x: 3380, y: 572, s: 80, berries: false },
+    { k: 'flower', x: 2740, y: 686, s: 36, c: '#8f5bd6' },
+    { k: 'bush', x: 3040, y: 700, s: 92, berries: true },
+    { k: 'rock', x: 3300, y: 692, s: 46 }
   ].sort(function (a, b) { return a.y - b.y; });
 
   var CLOUDS = [
@@ -218,7 +236,9 @@
     { cx: 1050, cy: 448, rx: 68, ry: 40, ph: 4.1, c: '#4d80e4', s: 14 },
     { cx: 1490, cy: 494, rx: 82, ry: 32, ph: 1.3, c: '#ffd75e', s: 14 },
     { cx: 1880, cy: 458, rx: 70, ry: 38, ph: 3.4, c: '#ff6fae', s: 13 },
-    { cx: 2290, cy: 500, rx: 90, ry: 30, ph: 5.2, c: '#4d80e4', s: 15 }
+    { cx: 2290, cy: 500, rx: 90, ry: 30, ph: 5.2, c: '#4d80e4', s: 15 },
+    { cx: 2720, cy: 486, rx: 78, ry: 34, ph: 0.8, c: '#ffd75e', s: 14 },
+    { cx: 3150, cy: 462, rx: 86, ry: 30, ph: 2.9, c: '#ff6fae', s: 15 }
   ];
 
   /* --------------------------------------------------------- dino & state */
@@ -481,9 +501,24 @@
     c.restore();
   }
 
+  /* The little bus, in profile, exactly as it looks inside — the sign is a
+     picture of what happens there. */
+  function iconBus(c, cx, cy, r) {
+    var g = (G.save && G.save.bus) || {};
+    if (A.bus) { A.bus(c, cx, cy + r * 0.46, r * 1.34, { body: g.body, wheels: g.wheels, roof: g.roof, spin: G.t }); return; }
+    c.save();
+    c.fillStyle = G.C.sun;
+    G.roundRect(c, cx - r * 0.66, cy - r * 0.34, r * 1.32, r * 0.62, r * 0.14); c.fill();
+    c.strokeStyle = G.C.ink; c.lineWidth = r * 0.08; c.stroke();
+    c.fillStyle = G.C.barkDark;
+    c.beginPath(); c.arc(cx - r * 0.34, cy + r * 0.32, r * 0.17, 0, 7); c.fill();
+    c.beginPath(); c.arc(cx + r * 0.34, cy + r * 0.32, r * 0.17, 0, 7); c.fill();
+    c.restore();
+  }
+
   var ICONS = {
     conta: iconConta, fili: iconFili, nido: iconNido,
-    guardaroba: iconGuardaroba, casetta: iconCasetta, kart: iconKart
+    guardaroba: iconGuardaroba, casetta: iconCasetta, kart: iconKart, bus: iconBus
   };
 
   function drawBadge(c, x, y, n) {

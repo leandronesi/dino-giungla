@@ -260,7 +260,7 @@ phase = 'avvio';
 pump(20);
 if (!G.current) fail('nessuna scena attiva dopo l avvio');
 
-const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'];
+const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'];
 const missing = expected.filter((s) => !G.sceneOf(s));
 if (missing.length) fail('scene mancanti: ' + missing.join(', '));
 
@@ -290,7 +290,7 @@ if (!G.account) fail('iscrizione non ha creato/collegato un account');
 else if (G.current !== 'giungla') fail('dopo l iscrizione la scena e "' + G.current + '" invece di giungla');
 
 // 2. every scene, at both levels, with a fuzz of taps and drags
-const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'genitori', 'gate', 'accesso'];
+const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus', 'genitori', 'gate', 'accesso'];
 [1, 2].forEach((lvl) => {
   if (!G.account) return;
   G.accounts.update(G.account.id, { level: lvl });
@@ -545,11 +545,49 @@ if (G.sceneOf('kart')) {
   }
 }
 
+// 4e. Il Pulmino: un giro con le commissioni, senza niente da fallire.
+phase = 'bus';
+{
+  const busSrc = fs.readFileSync(path.join(SRC, '26-bus.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  if (/G\.sfx\(\s*'bad'\s*\)/.test(busSrc)) fail('il Pulmino ha un suono negativo');
+  if (/G\.spend\s*\(/.test(busSrc)) fail('il Pulmino spende frutti: i pezzi si sbloccano viaggiando, non comprando');
+  if (/Date\.now\s*\(/.test(busSrc)) fail('il Pulmino legge l orologio');
+}
+
+if (G.sceneOf('bus')) {
+  const driver = G.accounts.create({ name: 'Autista', color: '#57c98a', level: 1, secret: null });
+  G.accounts.login(driver.id);
+  G.go('giungla'); pump(40); closeOverlayIfOpen('Autista');
+  G.save.fruits = 0;
+  G.go('bus'); pump(60);
+  if (G.current !== 'bus') fail('non sono entrato nel Pulmino (sono in "' + G.current + '")');
+
+  /* Hold the finger down and drive the whole route: passengers must get on,
+     get off, and pay. The gate needs a tap, so tap now and then too. */
+  ELS.c.dispatch('pointerdown', pev(640, 500));
+  for (let i = 0; i < 2600; i++) {
+    if (i % 260 === 0) { tap(640, 460); ELS.c.dispatch('pointerdown', pev(640, 500)); }
+    pump(1);
+  }
+  ELS.c.dispatch('pointerup', pev(640, 500));
+  pump(40);
+
+  const b = G.save.bus || {};
+  if (typeof b.done !== 'number') fail('G.save.bus.done non e un numero');
+  if (G.save.fruits <= 0) fail('nessun passeggero consegnato in tutto il percorso');
+  if (G.save.fruits > 100000) fail('frutti fuori scala dal Pulmino: ' + G.save.fruits);
+  [b.body, b.wheels, b.roof].forEach((v, i) => {
+    if (typeof v !== 'number' || v < 0) fail('pezzo ' + i + ' del pulmino non valido: ' + v);
+  });
+}
+
 // 5. a fresh account with an empty save must not explode anywhere
 phase = 'salvataggio vuoto';
 const fresh = G.accounts.create({ name: 'Vuoto', color: '#57c98a', level: 2, secret: null });
 G.accounts.login(fresh.id);
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
   phase = s + ' (save vuoto)';
   G.go(s); pump(40);
   for (let i = 0; i < 40; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
@@ -561,7 +599,7 @@ G.save.conta = { done: 'sette' };
 G.save.fili = { done: -3, size: 99 };
 G.save.nido = { items: null, lastSeen: 'ieri' };
 G.save.hats = null;
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
   phase = s + ' (save corrotto)';
   G.go(s); pump(40);
   for (let i = 0; i < 30; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
