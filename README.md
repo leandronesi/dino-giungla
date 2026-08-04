@@ -47,6 +47,11 @@ L'età scelta imposta la difficoltà, e non è un dettaglio cosmetico:
   al Nido.
 - **Grande (5-7 anni)** — addizioni e sottrazioni entro 10 e poi entro 20,
   addendo mancante, griglie fino a 6×6, cinque produttori con potenziamenti.
+  E ai Fili non basta unire i pallini: va **riempita tutta la griglia**. È la
+  regola per cui il generatore era già stato scritto — ogni puzzle è una
+  partizione di tutte le celle, quindi una soluzione piena esiste sempre. Se
+  restano buchi, i buchi pulsano: i fili restano dove sono e basta allungarne
+  uno, non si può mai restare bloccati.
 
 Si può cambiare l'età in qualsiasi momento dalle impostazioni.
 
