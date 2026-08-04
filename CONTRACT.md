@@ -141,6 +141,7 @@ G.save.fili     // ramo libero del minigioco "Fili Intrecciati"
 G.save.nido     // ramo libero della base "Il Nido"
 G.save.guardaroba // ramo libero del "Guardaroba" (+ possiede hat/hats)
 G.save.casetta  // ramo libero della "Casetta"
+G.save.kart     // ramo libero della "Pista" ({done, best})
 G.save.seen     // { nomeScena: bool } — per i tutorial una-tantum
 ```
 
@@ -267,6 +268,7 @@ Nido). Non sono buoni propositi nei commenti: sono asserzioni.
 | `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
 | `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
 | `src/24-casetta.js` | `casetta` | "La Casetta" — due stanze da arredare coi frutti |
+| `src/25-kart.js` | `kart` | "La Pista dei Gusci" — la gara che non si perde |
 
 `src/90-boot.js` (già scritto) gestisce: scelta profilo, menu genitori, avvio.
 

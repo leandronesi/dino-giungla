@@ -260,7 +260,7 @@ phase = 'avvio';
 pump(20);
 if (!G.current) fail('nessuna scena attiva dopo l avvio');
 
-const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'];
+const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'];
 const missing = expected.filter((s) => !G.sceneOf(s));
 if (missing.length) fail('scene mancanti: ' + missing.join(', '));
 
@@ -290,7 +290,7 @@ if (!G.account) fail('iscrizione non ha creato/collegato un account');
 else if (G.current !== 'giungla') fail('dopo l iscrizione la scena e "' + G.current + '" invece di giungla');
 
 // 2. every scene, at both levels, with a fuzz of taps and drags
-const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'genitori', 'gate', 'accesso'];
+const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'genitori', 'gate', 'accesso'];
 [1, 2].forEach((lvl) => {
   if (!G.account) return;
   G.accounts.update(G.account.id, { level: lvl });
@@ -505,11 +505,51 @@ if (G.sceneOf('casetta')) {
   }
 }
 
+// 4d. La Pista. Its no-fail promises are structural, so they are assertions.
+phase = 'kart';
+{
+  const kartSrc = fs.readFileSync(path.join(SRC, '25-kart.js'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  if (/G\.sfx\(\s*'bad'\s*\)/.test(kartSrc)) fail('la Pista ha un suono negativo: qui non si perde');
+  if (/Date\.now\s*\(/.test(kartSrc)) fail('la Pista legge l orologio: il cronometro va accumulato da dt');
+  const faucets = (kartSrc.match(/G\.addFruits\s*\(/g) || []).length;
+  if (faucets !== 1) fail('G.addFruits chiamata ' + faucets + ' volte: deve passare solo da bank()');
+  if (/hold\s*:\s*true/.test(kartSrc)) fail('un bottone con hold:true aprirebbe il menu genitori mentre si accelera');
+}
+
+if (G.sceneOf('kart')) {
+  const pilot = G.accounts.create({ name: 'Pilota', color: '#57c98a', level: 1, secret: null });
+  G.accounts.login(pilot.id);
+  G.go('giungla'); pump(40); closeOverlayIfOpen('Pilota');
+  G.save.fruits = 0;
+  G.go('kart'); pump(60);
+  if (G.current !== 'kart') fail('non sono entrato nella Pista (sono in "' + G.current + '")');
+
+  // hammering the screen and doing nothing must BOTH finish the race
+  for (let i = 0; i < 900; i++) {
+    if (i % 7 === 0) tap(640, 500);
+    pump(1);
+  }
+  const k = G.save.kart || {};
+  if (typeof k.done !== 'number') fail('G.save.kart.done non e un numero');
+  if (G.save.fruits <= 0) fail('un giro non ha fruttato niente: bank() non ha incassato');
+  if (G.save.fruits > 100000) fail('frutti fuori scala dalla Pista: ' + G.save.fruits);
+
+  // and now the same race without ever touching the screen: it must still end
+  G.go('giungla'); pump(30); G.go('kart'); pump(40);
+  const doneBefore = (G.save.kart || {}).done || 0;
+  pump(2400);                          // 3 laps at 250 px/s is ~26s, plus 3s of lights
+  if (((G.save.kart || {}).done || 0) <= doneBefore) {
+    fail('senza toccare lo schermo la gara non finisce: il gioco deve completarsi da solo');
+  }
+}
+
 // 5. a fresh account with an empty save must not explode anywhere
 phase = 'salvataggio vuoto';
 const fresh = G.accounts.create({ name: 'Vuoto', color: '#57c98a', level: 2, secret: null });
 G.accounts.login(fresh.id);
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'].forEach((s) => {
   phase = s + ' (save vuoto)';
   G.go(s); pump(40);
   for (let i = 0; i < 40; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
@@ -521,7 +561,7 @@ G.save.conta = { done: 'sette' };
 G.save.fili = { done: -3, size: 99 };
 G.save.nido = { items: null, lastSeen: 'ieri' };
 G.save.hats = null;
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart'].forEach((s) => {
   phase = s + ' (save corrotto)';
   G.go(s); pump(40);
   for (let i = 0; i < 30; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }

@@ -134,9 +134,10 @@
      plaque height — after one frame every sign swayed with the same phase. */
   var STATIONS = [
     { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.075, sway: 0.0 },
-    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.275, sway: 1.9 },
-    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.495, sway: 5.5 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.715, sway: 3.7 },
+    { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.245, sway: 1.9 },
+    { id: 'kart', name: 'La Pista', go: 'Andiamo alla Pista!', branch: 'kart', at: 0.415, sway: 4.4 },
+    { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.585, sway: 5.5 },
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.755, sway: 3.7 },
     { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.925, sway: 2.6 }
   ];
 
@@ -453,9 +454,36 @@
     c.restore();
   }
 
+  /* An oval of track with a shell-kart on it, seen from above like the scene
+     itself — so the sign is a picture of what happens inside. */
+  function iconKart(c, cx, cy, r) {
+    c.save();
+    c.strokeStyle = '#c8a06a'; c.lineWidth = r * 0.40; c.lineCap = 'round';
+    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.72, r * 0.44, 0, 0, 7); c.stroke();
+    c.strokeStyle = 'rgba(90,67,38,.55)'; c.lineWidth = r * 0.06;
+    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.92, r * 0.64, 0, 0, 7); c.stroke();
+    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.52, r * 0.24, 0, 0, 7); c.stroke();
+    var col = (G.account && G.account.color) || G.C.dino;
+    var kx = cx + r * 0.70, ky = cy + r * 0.08;
+    c.fillStyle = G.C.barkDark;
+    [[-r * 0.10, -r * 0.13], [-r * 0.10, r * 0.13], [r * 0.10, -r * 0.13], [r * 0.10, r * 0.13]].forEach(function (o) {
+      c.beginPath(); c.ellipse(kx + o[0], ky + o[1], r * 0.07, r * 0.05, 0, 0, 7); c.fill();
+    });
+    c.fillStyle = col; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.05;
+    c.beginPath(); c.ellipse(kx, ky, r * 0.19, r * 0.15, 0, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = G.C.cream;                        // the little chequered flag
+    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.26, r * 0.20);
+    c.fillStyle = G.C.ink;
+    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.13, r * 0.10);
+    c.fillRect(cx - r * 0.73, cy - r * 0.52, r * 0.13, r * 0.10);
+    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.06;
+    c.beginPath(); c.moveTo(cx - r * 0.86, cy - r * 0.62); c.lineTo(cx - r * 0.86, cy - r * 0.16); c.stroke();
+    c.restore();
+  }
+
   var ICONS = {
     conta: iconConta, fili: iconFili, nido: iconNido,
-    guardaroba: iconGuardaroba, casetta: iconCasetta
+    guardaroba: iconGuardaroba, casetta: iconCasetta, kart: iconKart
   };
 
   function drawBadge(c, x, y, n) {
