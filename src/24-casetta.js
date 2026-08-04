@@ -263,8 +263,19 @@
     G.say('A posto!');
   }
 
+  /* The price creeps up, but it is CAPPED. An uncapped multiplier reads like
+     depth and is really a wall: at 60 * 1.5^n the twentieth party costs over a
+     million, which means softNo on every single tap — a failure state wearing a
+     gentle voice. 240 is eighteen seconds of level-2 income and under two
+     minutes at level 1: always reachable, never free. */
+  function partyCost() {
+    var n = br().parties;
+    return price(Math.min(240, PARTY_COST + 20 * Math.max(0, n - 2)));
+  }
+
   function party(cx, cy) {
-    var g = br(), cost = price(PARTY_COST);
+    if (S.party > 0) return;              // no re-charging while it is running
+    var g = br(), cost = partyCost();
     if (fruitsOwned() < cost || !G.spend(cost)) { softNo(cx, cy); return; }
     g.parties++;
     G.saveNow();
@@ -370,8 +381,12 @@
         it.c = (it.c + 1) % 4; G.saveNow(); G.sfx('pop');
         return;
       }
+      /* The table used to charge for a party right here, AFTER S.drag had been
+         assigned and without clearing it — so at level 2 every touch on the
+         table cost 60 fruit AND started a drag, which made repositioning it
+         cost 60 fruit a go. The party now has its own button (drawPartyButton),
+         and the table is an ordinary piece of furniture. */
       if (big()) { S.drag = { i: hit, dx: p.x - it.x, dy: p.y - it.y, moved: false, t: 0 }; }
-      if (d.id === 'tavolino') { party(it.x, it.y - 60); return; }
       sendTo(it, false);
       G.sfx('tap');
     },
@@ -428,6 +443,7 @@
     });
 
     drawFly(c);
+    drawPartyButton(c);
     if (S.party > 0) drawParty(c);
     if (big()) drawShopL2(c); else drawShopL1(c);
     drawSoftNo(c);
@@ -473,6 +489,60 @@
     c.save();
     c.globalAlpha = 1 - k * 0.15;
     A.house(c, S.fly.id, x, y, d.w * (0.7 + k * 0.3), { c: S.fly.c });
+    c.restore();
+  }
+
+  /* The party used to be invisible: it lived inside the table, and nothing said
+     it existed, what it cost, or that it was worth pressing. Now it is a button
+     that bobs above the table — it only exists once you own the table — and it
+     says its price the way level 1 already understands: lit means yes, dim
+     means not yet, and a ring fills as the fruit comes in. */
+  function drawPartyButton(c) {
+    var tav = null, g = br(), i;
+    for (i = 0; i < g.items.length; i++) if (g.items[i].id === 'tavolino') { tav = g.items[i]; break; }
+    if (!tav) return;
+
+    var cost = partyCost(), can = fruitsOwned() >= cost;
+    var bob = Math.sin(G.t * 2) * 5;
+    var bx = tav.x, by = tav.y - 156 + bob;
+
+    G.ui.round({
+      id: 'festa', x: bx, y: by, r: 54,
+      color: S.party > 0 ? C.sun : (can ? C.pinkPop : '#a49889'),
+      icon: function (cc, x, y, r) { partyGlyph(cc, x, y, r * 0.82, S.party > 0); },
+      onTap: function () { party(bx, by - 40); }
+    });
+    if (!can && S.party <= 0) {
+      ring(c, bx + 62, by + 26, 22, G.clamp(fruitsOwned() / Math.max(1, cost), 0, 1));
+    }
+    if (big()) {
+      G.text(String(cost), bx, by + 78, {
+        ctx: c, size: 26, color: C.cream, weight: 800,
+        stroke: 'rgba(12,40,25,.75)', strokeWidth: 7
+      });
+    }
+  }
+
+  /* A party hat and three bits of confetti — no letters, nothing to read. */
+  function partyGlyph(c, cx, cy, r, going) {
+    c.save();
+    c.fillStyle = going ? C.berry : C.cream;
+    c.beginPath();
+    c.moveTo(cx, cy - r * 0.86);
+    c.lineTo(cx + r * 0.52, cy + r * 0.30);
+    c.lineTo(cx - r * 0.52, cy + r * 0.30);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = C.ink; c.lineWidth = Math.max(3, r * 0.11); c.stroke();
+    c.fillStyle = going ? C.cream : C.berry;
+    c.beginPath(); c.arc(cx, cy - r * 0.86, r * 0.15, 0, 7); c.fill();
+    [[-0.78, 0.62, C.sun], [0.80, 0.50, C.mint], [0.10, 0.78, C.blueberry]].forEach(function (p, i) {
+      c.fillStyle = p[2];
+      var d = going ? Math.sin(G.t * 7 + i) * r * 0.12 : 0;
+      c.beginPath();
+      c.arc(cx + p[0] * r, cy + p[1] * r + d, r * 0.13, 0, 7);
+      c.fill();
+    });
     c.restore();
   }
 
@@ -526,31 +596,49 @@
     return out;
   }
 
-  function drawShopL1(c) {
-    var list = shopList(), i, e, firstDim = -1;
-    for (i = 0; i < list.length && i < 4; i++) {
-      if (fruitsOwned() < list[i].cost) { firstDim = i; break; }
+  /* Three cells, and the third is ALWAYS the cheapest surface you do not own —
+     otherwise wallpaper and floors sit behind six cheaper pieces of furniture
+     and a three-year-old never discovers they exist. */
+  function shopCellsL1() {
+    var list = shopList(), items = [], surfs = [], i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].kind === 'surf') surfs.push(list[i]); else items.push(list[i]);
     }
-    for (i = 0; i < 4 && i < list.length; i++) {
+    var out = items.slice(0, 2);
+    if (surfs.length) out.push(surfs[0]);
+    while (out.length < 3 && items.length > out.length) out.push(items[out.length]);
+    return out;
+  }
+
+  /* The shop lives ON THE WALL, not over the floor. It used to be a strip at
+     y 596..708, which covered half the floor band and swallowed most of the tap
+     disc of the very furniture it had just sold. Below y = 470 is the room now,
+     and nothing else. */
+  function drawShopL1(c) {
+    var cells = shopCellsL1(), i, firstDim = -1;
+    for (i = 0; i < cells.length; i++) {
+      if (fruitsOwned() < cells[i].cost) { firstDim = i; break; }
+    }
+    for (i = 0; i < cells.length; i++) {
       (function (e, idx) {
-        var bx = 30 + idx * 302, can = fruitsOwned() >= e.cost;
+        var bx = 44 + idx * 312, can = fruitsOwned() >= e.cost;
         G.ui.button({
-          id: 'sl1' + idx, x: bx, y: 596, w: 288, h: 112, r: 26,
+          id: 'sl1' + idx, x: bx, y: 104, w: 300, h: 116, r: 26,
           color: can ? C.tangerine : '#a49889',
-          icon: function (cc, cx, cy) { cellIcon(cc, e, cx, cy, 70); },
+          icon: function (cc, cx, cy) { cellIcon(cc, e, cx, cy, 74); },
           onTap: function () {
-            if (e.kind === 'surf') buySurface(e.s, bx + 144, 640);
-            else buy(e.d, bx + 144, 640);
+            if (e.kind === 'surf') buySurface(e.s, bx + 150, 170);
+            else buy(e.d, bx + 150, 170);
           }
         });
         if (idx === firstDim) {                    // "it is coming" without counting
           var k = G.clamp(fruitsOwned() / Math.max(1, e.cost), 0, 1);
-          ring(c, bx + 252, 630, 22, k);
+          ring(c, bx + 264, 138, 22, k);
         }
-      })(list[i], i);
+      })(cells[i], i);
     }
     G.ui.round({
-      id: 'dado', x: 1230, y: 652, r: 46, color: C.plum,
+      id: 'dado', x: 1060, y: 160, r: 52, color: C.plum,
       icon: function (cc, x, y, r) { diceGlyph(cc, x, y, r * 0.86); },
       onTap: roll
     });
