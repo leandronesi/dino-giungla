@@ -338,6 +338,23 @@ if (G.sceneOf('lettere')) {
   if (typeof G.lettersState !== 'function' || typeof G.lettersChoose !== 'function' || typeof G.lettersHelp !== 'function') {
     fail('La Radura delle Lettere non espone stato/input per il collaudo');
   } else {
+    const catalog = typeof G.lettersCatalog === 'function' ? G.lettersCatalog() : null;
+    if (!catalog || !Array.isArray(catalog.piccolo) || !Array.isArray(catalog.grande) || catalog.piccolo.length < 50 || catalog.grande.length < 100) {
+      fail('catalogo Lettere troppo piccolo o non configurabile');
+    } else {
+      [['Piccolo', catalog.piccolo, 50], ['Grande', catalog.grande, 100]].forEach(([label, words, minimum]) => {
+        const seen = new Set();
+        words.forEach((entry) => {
+          if (!entry || typeof entry.word !== 'string' || !/^[A-Z]{3,9}$/.test(entry.word)) {
+            fail('parola ' + label + ' ingestibile: ' + JSON.stringify(entry));
+            return;
+          }
+          if (seen.has(entry.word)) fail('parola ' + label + ' duplicata: ' + entry.word);
+          seen.add(entry.word);
+        });
+        if (seen.size < minimum) fail('parole ' + label + ' uniche sotto soglia: ' + seen.size);
+      });
+    }
     for (let i = 0; i < 1600 && (G.save.lettere || {}).done < 5; i++) {
       const q = G.lettersState();
       if (q.phase === 'play' && q.expected) {
@@ -536,6 +553,8 @@ phase = 'kart';
   const faucets = (kartSrc.match(/G\.addFruits\s*\(/g) || []).length;
   if (faucets !== 1) fail('G.addFruits chiamata ' + faucets + ' volte: deve passare solo da bank()');
   if (/hold\s*:\s*true/.test(kartSrc)) fail('un bottone con hold:true aprirebbe il menu genitori mentre si accelera');
+  if (!/function\s+drawRhythm\s*\(/.test(kartSrc) || !/Tocca\s+'? \+ done/.test(kartSrc)) fail('il Girotondo non mostra il contatore ritmico');
+  if (!/note0|note1|note2|note3/.test(kartSrc)) fail('il Girotondo non distingue i suoni degli strumenti');
 }
 
 if (G.sceneOf('kart')) {

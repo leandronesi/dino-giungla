@@ -147,6 +147,10 @@
     coin: function () { tone(1180, 0, .07, 'square', .1); tone(1560, .06, .12, 'square', .1); },
     chime: function () { tone(1046, 0, .5, 'sine', .16); tone(1568, .02, .45, 'sine', .07); },
     whoosh: function () { noise(0, .22, .1, 900); },
+    note0: function () { tone(196, 0, .16, 'triangle', .2, 150); tone(392, .03, .12, 'sine', .1); },
+    note1: function () { tone(523, 0, .32, 'sine', .18); tone(784, .04, .22, 'sine', .08); },
+    note2: function () { tone(330, 0, .12, 'square', .12, 550); tone(495, .08, .12, 'square', .1); },
+    note3: function () { tone(659, 0, .24, 'triangle', .16, 880); },
     win: function () {
       [523, 659, 784, 1046].forEach(function (f, i) { tone(f, i * .1, .3, 'triangle', .2); });
       tone(1318, .42, .5, 'sine', .14);

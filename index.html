@@ -234,6 +234,10 @@ html, body {
     coin: function () { tone(1180, 0, .07, 'square', .1); tone(1560, .06, .12, 'square', .1); },
     chime: function () { tone(1046, 0, .5, 'sine', .16); tone(1568, .02, .45, 'sine', .07); },
     whoosh: function () { noise(0, .22, .1, 900); },
+    note0: function () { tone(196, 0, .16, 'triangle', .2, 150); tone(392, .03, .12, 'sine', .1); },
+    note1: function () { tone(523, 0, .32, 'sine', .18); tone(784, .04, .22, 'sine', .08); },
+    note2: function () { tone(330, 0, .12, 'square', .12, 550); tone(495, .08, .12, 'square', .1); },
+    note3: function () { tone(659, 0, .24, 'triangle', .16, 880); },
     win: function () {
       [523, 659, 784, 1046].forEach(function (f, i) { tone(f, i * .1, .3, 'triangle', .2); });
       tone(1318, .42, .5, 'sine', .14);
@@ -8739,15 +8743,15 @@ html, body {
   var C = G.C, W = G.W, H = G.H;
   var A = window.A;
   var FRIENDS = [
-    { name: 'Tamburo', say: 'tamburo', color: C.berry, sfx: 'pop' },
-    { name: 'Campanella', say: 'campanella', color: C.sun, sfx: 'chime' },
-    { name: 'Maracas', say: 'maracas', color: C.mint, sfx: 'whoosh' },
-    { name: 'Flauto', say: 'flauto', color: C.blueberry, sfx: 'good' }
+    { name: 'Tamburo', say: 'tamburo', color: C.berry, sfx: 'note0' },
+    { name: 'Campanella', say: 'campanella', color: C.sun, sfx: 'note1' },
+    { name: 'Maracas', say: 'maracas', color: C.mint, sfx: 'note2' },
+    { name: 'Flauto', say: 'flauto', color: C.blueberry, sfx: 'note3' }
   ];
   var ROUND_GOAL = 4;
   var S = {
     phase: 'ascolta', t: 0, round: 0, sequence: [], playAt: 0, playIndex: 0,
-    inputIndex: 0, active: -1, mistake: 0, idle: 0, songT: 0, banked: 0
+    inputIndex: 0, active: -1, activeT: 0, phaseT: 0, mistake: 0, idle: 0, songT: 0, banked: 0
   };
   var lookBuffers = [{}, {}, {}, {}];
 
@@ -8775,19 +8779,19 @@ html, body {
       if (v === last) v = (v + 1) % FRIENDS.length;
       S.sequence.push(v); last = v;
     }
-    S.phase = 'play'; S.t = 0; S.playAt = .55; S.playIndex = 0;
-    S.inputIndex = 0; S.active = -1; S.mistake = 0; S.idle = 0;
+    S.phase = 'play'; S.t = 0; S.phaseT = 0; S.playAt = .55; S.playIndex = 0;
+    S.inputIndex = 0; S.active = -1; S.activeT = 0; S.mistake = 0; S.idle = 0;
     G.say(big() ? 'Ascolta tutta la sequenza!' : 'Ascolta e ripeti!');
   }
   function reset() {
     S.phase = 'ascolta'; S.t = 0; S.round = 0; S.sequence.length = 0;
-    S.playIndex = 0; S.inputIndex = 0; S.active = -1; S.mistake = 0;
+    S.playIndex = 0; S.inputIndex = 0; S.active = -1; S.activeT = 0; S.phaseT = 0; S.mistake = 0;
     S.idle = 0; S.songT = 0; S.banked = 0;
     nextRound();
   }
   function playNote(i) {
     var f = FRIENDS[i];
-    S.active = i; S.t = 0;
+    S.active = i; S.activeT = 0;
     G.sfx(f.sfx); G.say(f.say);
     G.fx.ring(180 + i * 285, 355, f.color, 68);
   }
@@ -8814,7 +8818,7 @@ html, body {
     if (S.phase !== 'input' && S.phase !== 'smallInput') return;
     S.idle = 0;
     if (S.sequence[S.inputIndex] !== i) { wrong(); return; }
-    S.active = i; S.inputIndex++; G.sfx(FRIENDS[i].sfx);
+    S.active = i; S.activeT = 0; S.inputIndex++; G.sfx(FRIENDS[i].sfx);
     G.fx.ring(180 + i * 285, 355, FRIENDS[i].color, 60);
     if (S.inputIndex >= S.sequence.length) completeRound();
     else if (!big()) { S.phase = 'smallNext'; S.t = 0; }
@@ -8823,7 +8827,11 @@ html, body {
     if (S.phase === 'input' || S.phase === 'smallInput') choose(S.sequence[S.inputIndex]);
   }
   G.soundState = function () {
-    return { phase: S.phase, expected: S.sequence[S.inputIndex], round: S.round, length: S.sequence.length };
+    return {
+      phase: S.phase, expected: S.sequence[S.inputIndex], round: S.round,
+      length: S.sequence.length, index: S.inputIndex, played: S.playIndex,
+      phaseT: S.phaseT, nextIn: S.phase === 'play' ? Math.max(0, S.playAt - S.phaseT) : 0
+    };
   };
   G.soundChoose = choose;                 // deterministic headless tests
 
@@ -8878,6 +8886,23 @@ html, body {
     G.ui.button({ x: 310, y: 510, w: 290, h: 112, r: 28, label: 'Ancora!', color: C.leaf, fontSize: 38, onTap: function () { reset(); } });
     G.ui.button({ x: 680, y: 510, w: 290, h: 112, r: 28, label: 'Giungla', color: C.tangerine, fontSize: 34, onTap: function () { G.home(); } });
   }
+  function drawRhythm(c) {
+    var n = S.sequence.length, done = (S.phase === 'input' || S.phase === 'smallInput') ? S.inputIndex : S.playIndex;
+    var label = (S.phase === 'input' || S.phase === 'smallInput') ? ('Tocca ' + done + ' / ' + n) : ('Ascolta ' + n + ' note');
+    var left = 380, width = 520, i, x;
+    c.save(); c.fillStyle = 'rgba(15,43,51,.72)'; G.roundRect(c, left - 28, 392, width + 56, 58, 24); c.fill();
+    G.text(label, left + width / 2, 409, { ctx: c, size: 23, color: C.cream, stroke: C.ink, strokeWidth: 5 });
+    for (i = 0; i < n; i++) {
+      x = left + (i + .5) * width / n;
+      c.fillStyle = i < done ? C.leafLight : (i === done ? C.sun : 'rgba(255,245,220,.35)');
+      c.beginPath(); c.arc(x, 432, 9, 0, 7); c.fill();
+      c.strokeStyle = FRIENDS[S.sequence[i]].color; c.lineWidth = 3; c.stroke();
+    }
+    if (S.phase === 'play' && S.playAt > 0) {
+      c.fillStyle = C.sun; c.globalAlpha = .78; G.roundRect(c, left, 444, width * G.clamp(S.phaseT / S.playAt, 0, 1), 5, 3); c.fill();
+    }
+    c.restore();
+  }
   function drawScene(c) {
     if (A && A.jungle) A.jungle(c, G.t, { dim: .16 });
     else { c.fillStyle = C.sky; c.fillRect(0, 0, W, H); }
@@ -8886,6 +8911,7 @@ html, body {
     var instruction = S.phase === 'festa' ? 'La nostra canzone!' : (S.phase === 'input' || S.phase === 'smallInput' ? 'Tocca gli strumenti nello stesso ordine' : 'Ascolta...');
     G.text(instruction, 640, 184, { size: 25, color: C.cream, stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
     for (var i = 0; i < FRIENDS.length; i++) drawFriend(c, i);
+    drawRhythm(c);
     if (S.phase === 'festa') drawParty(c); else drawButtons(c);
     if (S.phase === 'buffo') G.text('Riproviamo insieme!', 640, 690, { size: 28, color: C.sun, stroke: C.ink, strokeWidth: 6 });
   }
@@ -8899,12 +8925,13 @@ html, body {
     },
     exit: function () { S.active = -1; },
     update: function (dt) {
-      S.songT += dt; S.t += dt;
-      if (S.active >= 0 && S.t > .42) S.active = -1;
+      S.songT += dt; S.t += dt; S.phaseT += dt; S.activeT += dt;
+      if (S.active >= 0 && S.activeT > .42) S.active = -1;
       if (S.phase === 'play') {
-        if (S.t >= S.playAt) {
+        if (S.phaseT >= S.playAt) {
           if (S.playIndex < S.sequence.length) {
             playNote(S.sequence[S.playIndex++]);
+            S.phaseT = 0;
             if (big()) S.playAt = .76;
             else S.phase = 'smallInput';
           } else {
@@ -8913,7 +8940,7 @@ html, body {
           }
         }
       } else if (S.phase === 'smallNext') {
-        if (S.t > .32) { S.phase = 'play'; S.t = 0; S.playAt = .12; }
+        if (S.t > .32) { S.phase = 'play'; S.t = 0; S.phaseT = 0; S.playAt = .12; }
       } else if (S.phase === 'smallInput') {
         S.idle += dt; if (S.idle > 3) autoPlayExpected();
       } else if (S.phase === 'pausaInput') {
@@ -8922,7 +8949,7 @@ html, body {
         S.idle += dt; if (S.idle > 5) autoPlayExpected();
       } else if (S.phase === 'buffo') {
         if (S.t > .9) {
-          S.t = 0; S.playIndex = 0; S.inputIndex = 0; S.idle = 0;
+          S.t = 0; S.phaseT = 0; S.playIndex = 0; S.inputIndex = 0; S.idle = 0;
           if (big()) { S.phase = 'play'; S.playAt = .1; } else { S.phase = 'smallInput'; playNote(S.sequence[0]); }
         }
       } else if (S.phase === 'pausa') {
@@ -9086,15 +9113,94 @@ html, body {
   var G = window.G;
   if (!G || !G.scene) return;
   var C = G.C, W = G.W, H = G.H, A = window.A;
-  var WORDS = [
-    { word: 'DINO', name: 'il dinosauro', kind: 'dino', color: C.dino },
-    { word: 'CASA', name: 'la casa', kind: 'casa', color: C.berry },
-    { word: 'BUS', name: 'il pulmino', kind: 'bus', color: C.sun },
-    { word: 'MELA', name: 'la mela', kind: 'mela', color: C.berry },
-    { word: 'PALLA', name: 'la palla', kind: 'palla', color: C.blueberry },
-    { word: 'SOLE', name: 'il sole', kind: 'sole', color: C.sun },
-    { word: 'FIORE', name: 'il fiore', kind: 'fiore', color: C.pinkPop }
-  ];
+  /* Data first: adding a word only needs a familiar name and one of the seven
+     existing procedural drawings. The banks are intentionally finite and
+     shuffled by round, so a child can learn a large vocabulary without a
+     network request or an asset catalogue. */
+  var WORD_BANK = {
+    piccolo: [
+      ['APE', "l'ape", 'fiore', C.sun], ['UOVO', "l'uovo", 'mela', C.cream],
+      ['UVA', "l'uva", 'mela', C.plum], ['BUS', 'il pulmino', 'bus', C.sun],
+      ['AUTO', "l'auto", 'bus', C.blueberry], ['CANE', 'il cane', 'dino', C.tangerine],
+      ['CASA', 'la casa', 'casa', C.berry], ['DINO', 'il dinosauro', 'dino', C.dino],
+      ['LUNA', 'la luna', 'sole', C.blueberry], ['LUPO', 'il lupo', 'dino', C.plum],
+      ['MARE', 'il mare', 'sole', C.blueberry], ['MELA', 'la mela', 'mela', C.berry],
+      ['MOTO', 'la moto', 'bus', C.tangerine], ['NASO', 'il naso', 'dino', C.tangerine],
+      ['NIDO', 'il nido', 'casa', C.tangerine], ['PANE', 'il pane', 'casa', C.sand],
+      ['RANA', 'la rana', 'dino', C.leaf], ['RISO', 'il riso', 'mela', C.cream],
+      ['ROSA', 'la rosa', 'fiore', C.pinkPop], ['SOLE', 'il sole', 'sole', C.sun],
+      ['TOPO', 'il topo', 'dino', C.sand], ['ORSO', "l'orso", 'dino', C.bark],
+      ['GATTO', 'il gatto', 'dino', C.plum], ['LATTE', 'il latte', 'mela', C.cream],
+      ['FIORE', 'il fiore', 'fiore', C.pinkPop], ['PALLA', 'la palla', 'palla', C.blueberry],
+      ['PESCE', 'il pesce', 'mela', C.blueberry], ['TIGRE', 'la tigre', 'dino', C.tangerine],
+      ['LEONE', 'il leone', 'dino', C.sun], ['LIBRO', 'il libro', 'casa', C.plum],
+      ['MONDO', 'il mondo', 'sole', C.blueberry], ['PORTA', 'la porta', 'casa', C.berry],
+      ['SEDIA', 'la sedia', 'casa', C.tangerine], ['TRENO', 'il treno', 'bus', C.blueberry],
+      ['ZAINO', 'lo zaino', 'casa', C.blueberry], ['ALBERO', "l'albero", 'fiore', C.leaf],
+      ['BANANA', 'la banana', 'mela', C.sun], ['GELATO', 'il gelato', 'mela', C.cream],
+      ['LIMONE', 'il limone', 'mela', C.sun], ['STELLA', 'la stella', 'sole', C.sun],
+      ['NUVOLE', 'le nuvole', 'sole', C.cream], ['CAVALLO', 'il cavallo', 'dino', C.bark],
+      ['GIRAFFA', 'la giraffa', 'dino', C.sun], ['SCIMMIA', 'la scimmia', 'dino', C.tangerine],
+      ['PULCINO', 'il pulcino', 'dino', C.sun], ['FARFALLA', 'la farfalla', 'fiore', C.pinkPop],
+      ['FORMICA', 'la formica', 'dino', C.berry], ['MONTAGNA', 'la montagna', 'fiore', C.leaf],
+      ['VALIGIA', 'la valigia', 'casa', C.plum], ['BALENA', 'la balena', 'mela', C.blueberry]
+    ],
+    grande: [
+      ['APE', "l'ape", 'fiore', C.sun], ['UOVO', "l'uovo", 'mela', C.cream],
+      ['UVA', "l'uva", 'mela', C.plum], ['BUS', 'il pulmino', 'bus', C.sun],
+      ['AUTO', "l'auto", 'bus', C.blueberry], ['CANE', 'il cane', 'dino', C.tangerine],
+      ['CASA', 'la casa', 'casa', C.berry], ['DINO', 'il dinosauro', 'dino', C.dino],
+      ['LUNA', 'la luna', 'sole', C.blueberry], ['LUPO', 'il lupo', 'dino', C.plum],
+      ['MARE', 'il mare', 'sole', C.blueberry], ['MELA', 'la mela', 'mela', C.berry],
+      ['MOTO', 'la moto', 'bus', C.tangerine], ['NASO', 'il naso', 'dino', C.tangerine],
+      ['NIDO', 'il nido', 'casa', C.tangerine], ['PANE', 'il pane', 'casa', C.sand],
+      ['RANA', 'la rana', 'dino', C.leaf], ['RISO', 'il riso', 'mela', C.cream],
+      ['ROSA', 'la rosa', 'fiore', C.pinkPop], ['SOLE', 'il sole', 'sole', C.sun],
+      ['TOPO', 'il topo', 'dino', C.sand], ['ORSO', "l'orso", 'dino', C.bark],
+      ['GATTO', 'il gatto', 'dino', C.plum], ['LATTE', 'il latte', 'mela', C.cream],
+      ['FIORE', 'il fiore', 'fiore', C.pinkPop], ['PALLA', 'la palla', 'palla', C.blueberry],
+      ['PESCE', 'il pesce', 'mela', C.blueberry], ['TIGRE', 'la tigre', 'dino', C.tangerine],
+      ['LEONE', 'il leone', 'dino', C.sun], ['LIBRO', 'il libro', 'casa', C.plum],
+      ['MONDO', 'il mondo', 'sole', C.blueberry], ['PORTA', 'la porta', 'casa', C.berry],
+      ['SEDIA', 'la sedia', 'casa', C.tangerine], ['TRENO', 'il treno', 'bus', C.blueberry],
+      ['ZAINO', 'lo zaino', 'casa', C.blueberry], ['ALBERO', "l'albero", 'fiore', C.leaf],
+      ['BANANA', 'la banana', 'mela', C.sun], ['GELATO', 'il gelato', 'mela', C.cream],
+      ['LIMONE', 'il limone', 'mela', C.sun], ['STELLA', 'la stella', 'sole', C.sun],
+      ['NUVOLE', 'le nuvole', 'sole', C.cream], ['CAVALLO', 'il cavallo', 'dino', C.bark],
+      ['GIRAFFA', 'la giraffa', 'dino', C.sun], ['SCIMMIA', 'la scimmia', 'dino', C.tangerine],
+      ['PULCINO', 'il pulcino', 'dino', C.sun], ['FARFALLA', 'la farfalla', 'fiore', C.pinkPop],
+      ['FORMICA', 'la formica', 'dino', C.berry], ['MONTAGNA', 'la montagna', 'fiore', C.leaf],
+      ['VALIGIA', 'la valigia', 'casa', C.plum], ['BALENA', 'la balena', 'mela', C.blueberry],
+      ['ARANCIA', "l'arancia", 'mela', C.tangerine], ['PESCA', 'la pesca', 'mela', C.pinkPop],
+      ['MIRTILLO', 'il mirtillo', 'mela', C.blueberry], ['FRAGOLA', 'la fragola', 'mela', C.berry],
+      ['CAROTA', 'la carota', 'mela', C.tangerine], ['PATATA', 'la patata', 'mela', C.sand],
+      ['BISCOTTO', 'il biscotto', 'mela', C.cream], ['CARAMELLA', 'la caramella', 'mela', C.pinkPop],
+      ['COLAZIONE', 'la colazione', 'casa', C.sun], ['MERENDA', 'la merenda', 'mela', C.berry],
+      ['ACQUA', "l'acqua", 'sole', C.water], ['BICCHIERE', 'il bicchiere', 'casa', C.blueberry],
+      ['CUCCHIAIO', 'il cucchiaio', 'casa', C.sand], ['FORCHETTA', 'la forchetta', 'casa', C.cream],
+      ['PENTOLA', 'la pentola', 'casa', C.bark], ['CAMICIA', 'la camicia', 'casa', C.blueberry],
+      ['SCARPA', 'la scarpa', 'casa', C.berry], ['CAPPELLO', 'il cappello', 'casa', C.plum],
+      ['OMBRELLO', "l'ombrello", 'casa', C.blueberry], ['PIGIAMA', 'il pigiama', 'casa', C.mint],
+      ['COPERTA', 'la coperta', 'casa', C.pinkPop], ['CUSCINO', 'il cuscino', 'casa', C.sun],
+      ['FINESTRA', 'la finestra', 'casa', C.blueberry], ['GIARDINO', 'il giardino', 'fiore', C.leaf],
+      ['CASTELLO', 'il castello', 'casa', C.berry], ['PISCINA', 'la piscina', 'sole', C.water],
+      ['SPIAGGIA', 'la spiaggia', 'sole', C.sand], ['MATTONE', 'il mattone', 'casa', C.berry],
+      ['MATITA', 'la matita', 'casa', C.tangerine], ['COLORI', 'i colori', 'fiore', C.pinkPop],
+      ['DISEGNO', 'il disegno', 'fiore', C.plum], ['MUSICA', 'la musica', 'fiore', C.sun],
+      ['CARTA', 'la carta', 'casa', C.cream], ['PENNELLO', 'il pennello', 'fiore', C.blueberry],
+      ['PUZZLE', 'il puzzle', 'palla', C.tangerine], ['GIOSTRA', 'la giostra', 'palla', C.pinkPop],
+      ['ALTALENA', "l'altalena", 'palla', C.leaf], ['AEREO', "l'aereo", 'bus', C.blueberry],
+      ['NAVE', 'la nave', 'bus', C.blueberry], ['RAZZO', 'il razzo', 'bus', C.tangerine],
+      ['PIANETA', 'il pianeta', 'sole', C.blueberry], ['SCIVOLO', 'lo scivolo', 'palla', C.pinkPop],
+      ['DINOSAURO', 'il dinosauro', 'dino', C.dino], ['VOLPE', 'la volpe', 'dino', C.tangerine],
+      ['CONIGLIO', 'il coniglio', 'dino', C.cream], ['ELEFANTE', "l'elefante", 'dino', C.blueberry],
+      ['TARTARUGA', 'la tartaruga', 'dino', C.leaf], ['ZEBRA', 'la zebra', 'dino', C.ink],
+      ['CANARINO', 'il canarino', 'dino', C.mint], ['PULMINO', 'il pulmino', 'bus', C.sun]
+    ]
+  };
+  function makeWords(bank) { return bank.map(function (x) { return { word: x[0], name: x[1], kind: x[2], color: x[3] }; }); }
+  var WORDS = { piccolo: makeWords(WORD_BANK.piccolo), grande: makeWords(WORD_BANK.grande) };
+  G.lettersCatalog = function () { return { piccolo: WORDS.piccolo.slice(), grande: WORDS.grande.slice() }; };
   var S = {
     phase: 'play', round: 0, word: null, mode: 0, slots: [], tray: [],
     next: 0, active: -1, flash: 0, idle: 0, reveal: 0, song: 0
@@ -9112,8 +9218,8 @@ html, body {
     return b;
   }
   function wordForRound() {
-    var max = big() ? WORDS.length : 5;
-    return WORDS[S.round % max];
+    var bank = big() ? WORDS.grande : (S.round < 6 ? WORDS.piccolo.slice(0, 7) : WORDS.piccolo);
+    return bank[S.round % bank.length];
   }
   function modeForRound() {
     // The three modes are a gentle spiral: every child sees all of them.
@@ -9129,11 +9235,15 @@ html, body {
     return arr;
   }
   function startRound() {
-    var w = wordForRound(), i, extras = big() ? ['R', 'T'] : [];
+    var w = wordForRound(), i, extras = [];
     S.word = w; S.mode = modeForRound(); S.slots = [];
     for (i = 0; i < w.word.length; i++) S.slots.push('');
     S.tray = shuffleLetters(w.word);
-    for (i = 0; i < extras.length; i++) S.tray.push(extras[i]);
+    if (big()) {
+      var candidates = 'BCDFGHQRTVZ'.split('');
+      for (i = 0; i < candidates.length && extras.length < 2; i++) if (w.word.indexOf(candidates[i]) < 0) extras.push(candidates[i]);
+      for (i = 0; i < extras.length; i++) S.tray.push(extras[i]);
+    }
     S.next = 0; S.phase = 'play'; S.active = -1; S.flash = 0; S.idle = 0;
     S.reveal = S.mode === 2 ? 1 : 0; S.song = 0;
     G.say('Ascolta: ' + w.name + '.');

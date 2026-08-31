@@ -47,6 +47,12 @@ async function main() {
   const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const dir = path.join(__dirname, 'frames'); fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, 'lettere-grande.png'); fs.writeFileSync(file, Buffer.from(shot.data, 'base64'));
+  const kart = await call('Runtime.evaluate', { expression: "G.start('kart'); G.current", returnByValue: true });
+  if (kart.exceptionDetails) throw new Error('Avvio Girotondo fallito');
+  await delay(1200);
+  const kartShot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+  const kartFile = path.join(dir, 'kart-girotondo.png'); fs.writeFileSync(kartFile, Buffer.from(kartShot.data, 'base64'));
+  console.log('fotogramma reale salvato in test/frames/kart-girotondo.png');
   console.log('✓ fotogramma reale salvato in test/frames/lettere-grande.png');
   ws.close(); child.kill(); server.close();
   await Promise.race([new Promise(resolve => child.once('exit', resolve)), delay(2500)]);

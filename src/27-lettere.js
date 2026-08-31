@@ -7,15 +7,94 @@
   var G = window.G;
   if (!G || !G.scene) return;
   var C = G.C, W = G.W, H = G.H, A = window.A;
-  var WORDS = [
-    { word: 'DINO', name: 'il dinosauro', kind: 'dino', color: C.dino },
-    { word: 'CASA', name: 'la casa', kind: 'casa', color: C.berry },
-    { word: 'BUS', name: 'il pulmino', kind: 'bus', color: C.sun },
-    { word: 'MELA', name: 'la mela', kind: 'mela', color: C.berry },
-    { word: 'PALLA', name: 'la palla', kind: 'palla', color: C.blueberry },
-    { word: 'SOLE', name: 'il sole', kind: 'sole', color: C.sun },
-    { word: 'FIORE', name: 'il fiore', kind: 'fiore', color: C.pinkPop }
-  ];
+  /* Data first: adding a word only needs a familiar name and one of the seven
+     existing procedural drawings. The banks are intentionally finite and
+     shuffled by round, so a child can learn a large vocabulary without a
+     network request or an asset catalogue. */
+  var WORD_BANK = {
+    piccolo: [
+      ['APE', "l'ape", 'fiore', C.sun], ['UOVO', "l'uovo", 'mela', C.cream],
+      ['UVA', "l'uva", 'mela', C.plum], ['BUS', 'il pulmino', 'bus', C.sun],
+      ['AUTO', "l'auto", 'bus', C.blueberry], ['CANE', 'il cane', 'dino', C.tangerine],
+      ['CASA', 'la casa', 'casa', C.berry], ['DINO', 'il dinosauro', 'dino', C.dino],
+      ['LUNA', 'la luna', 'sole', C.blueberry], ['LUPO', 'il lupo', 'dino', C.plum],
+      ['MARE', 'il mare', 'sole', C.blueberry], ['MELA', 'la mela', 'mela', C.berry],
+      ['MOTO', 'la moto', 'bus', C.tangerine], ['NASO', 'il naso', 'dino', C.tangerine],
+      ['NIDO', 'il nido', 'casa', C.tangerine], ['PANE', 'il pane', 'casa', C.sand],
+      ['RANA', 'la rana', 'dino', C.leaf], ['RISO', 'il riso', 'mela', C.cream],
+      ['ROSA', 'la rosa', 'fiore', C.pinkPop], ['SOLE', 'il sole', 'sole', C.sun],
+      ['TOPO', 'il topo', 'dino', C.sand], ['ORSO', "l'orso", 'dino', C.bark],
+      ['GATTO', 'il gatto', 'dino', C.plum], ['LATTE', 'il latte', 'mela', C.cream],
+      ['FIORE', 'il fiore', 'fiore', C.pinkPop], ['PALLA', 'la palla', 'palla', C.blueberry],
+      ['PESCE', 'il pesce', 'mela', C.blueberry], ['TIGRE', 'la tigre', 'dino', C.tangerine],
+      ['LEONE', 'il leone', 'dino', C.sun], ['LIBRO', 'il libro', 'casa', C.plum],
+      ['MONDO', 'il mondo', 'sole', C.blueberry], ['PORTA', 'la porta', 'casa', C.berry],
+      ['SEDIA', 'la sedia', 'casa', C.tangerine], ['TRENO', 'il treno', 'bus', C.blueberry],
+      ['ZAINO', 'lo zaino', 'casa', C.blueberry], ['ALBERO', "l'albero", 'fiore', C.leaf],
+      ['BANANA', 'la banana', 'mela', C.sun], ['GELATO', 'il gelato', 'mela', C.cream],
+      ['LIMONE', 'il limone', 'mela', C.sun], ['STELLA', 'la stella', 'sole', C.sun],
+      ['NUVOLE', 'le nuvole', 'sole', C.cream], ['CAVALLO', 'il cavallo', 'dino', C.bark],
+      ['GIRAFFA', 'la giraffa', 'dino', C.sun], ['SCIMMIA', 'la scimmia', 'dino', C.tangerine],
+      ['PULCINO', 'il pulcino', 'dino', C.sun], ['FARFALLA', 'la farfalla', 'fiore', C.pinkPop],
+      ['FORMICA', 'la formica', 'dino', C.berry], ['MONTAGNA', 'la montagna', 'fiore', C.leaf],
+      ['VALIGIA', 'la valigia', 'casa', C.plum], ['BALENA', 'la balena', 'mela', C.blueberry]
+    ],
+    grande: [
+      ['APE', "l'ape", 'fiore', C.sun], ['UOVO', "l'uovo", 'mela', C.cream],
+      ['UVA', "l'uva", 'mela', C.plum], ['BUS', 'il pulmino', 'bus', C.sun],
+      ['AUTO', "l'auto", 'bus', C.blueberry], ['CANE', 'il cane', 'dino', C.tangerine],
+      ['CASA', 'la casa', 'casa', C.berry], ['DINO', 'il dinosauro', 'dino', C.dino],
+      ['LUNA', 'la luna', 'sole', C.blueberry], ['LUPO', 'il lupo', 'dino', C.plum],
+      ['MARE', 'il mare', 'sole', C.blueberry], ['MELA', 'la mela', 'mela', C.berry],
+      ['MOTO', 'la moto', 'bus', C.tangerine], ['NASO', 'il naso', 'dino', C.tangerine],
+      ['NIDO', 'il nido', 'casa', C.tangerine], ['PANE', 'il pane', 'casa', C.sand],
+      ['RANA', 'la rana', 'dino', C.leaf], ['RISO', 'il riso', 'mela', C.cream],
+      ['ROSA', 'la rosa', 'fiore', C.pinkPop], ['SOLE', 'il sole', 'sole', C.sun],
+      ['TOPO', 'il topo', 'dino', C.sand], ['ORSO', "l'orso", 'dino', C.bark],
+      ['GATTO', 'il gatto', 'dino', C.plum], ['LATTE', 'il latte', 'mela', C.cream],
+      ['FIORE', 'il fiore', 'fiore', C.pinkPop], ['PALLA', 'la palla', 'palla', C.blueberry],
+      ['PESCE', 'il pesce', 'mela', C.blueberry], ['TIGRE', 'la tigre', 'dino', C.tangerine],
+      ['LEONE', 'il leone', 'dino', C.sun], ['LIBRO', 'il libro', 'casa', C.plum],
+      ['MONDO', 'il mondo', 'sole', C.blueberry], ['PORTA', 'la porta', 'casa', C.berry],
+      ['SEDIA', 'la sedia', 'casa', C.tangerine], ['TRENO', 'il treno', 'bus', C.blueberry],
+      ['ZAINO', 'lo zaino', 'casa', C.blueberry], ['ALBERO', "l'albero", 'fiore', C.leaf],
+      ['BANANA', 'la banana', 'mela', C.sun], ['GELATO', 'il gelato', 'mela', C.cream],
+      ['LIMONE', 'il limone', 'mela', C.sun], ['STELLA', 'la stella', 'sole', C.sun],
+      ['NUVOLE', 'le nuvole', 'sole', C.cream], ['CAVALLO', 'il cavallo', 'dino', C.bark],
+      ['GIRAFFA', 'la giraffa', 'dino', C.sun], ['SCIMMIA', 'la scimmia', 'dino', C.tangerine],
+      ['PULCINO', 'il pulcino', 'dino', C.sun], ['FARFALLA', 'la farfalla', 'fiore', C.pinkPop],
+      ['FORMICA', 'la formica', 'dino', C.berry], ['MONTAGNA', 'la montagna', 'fiore', C.leaf],
+      ['VALIGIA', 'la valigia', 'casa', C.plum], ['BALENA', 'la balena', 'mela', C.blueberry],
+      ['ARANCIA', "l'arancia", 'mela', C.tangerine], ['PESCA', 'la pesca', 'mela', C.pinkPop],
+      ['MIRTILLO', 'il mirtillo', 'mela', C.blueberry], ['FRAGOLA', 'la fragola', 'mela', C.berry],
+      ['CAROTA', 'la carota', 'mela', C.tangerine], ['PATATA', 'la patata', 'mela', C.sand],
+      ['BISCOTTO', 'il biscotto', 'mela', C.cream], ['CARAMELLA', 'la caramella', 'mela', C.pinkPop],
+      ['COLAZIONE', 'la colazione', 'casa', C.sun], ['MERENDA', 'la merenda', 'mela', C.berry],
+      ['ACQUA', "l'acqua", 'sole', C.water], ['BICCHIERE', 'il bicchiere', 'casa', C.blueberry],
+      ['CUCCHIAIO', 'il cucchiaio', 'casa', C.sand], ['FORCHETTA', 'la forchetta', 'casa', C.cream],
+      ['PENTOLA', 'la pentola', 'casa', C.bark], ['CAMICIA', 'la camicia', 'casa', C.blueberry],
+      ['SCARPA', 'la scarpa', 'casa', C.berry], ['CAPPELLO', 'il cappello', 'casa', C.plum],
+      ['OMBRELLO', "l'ombrello", 'casa', C.blueberry], ['PIGIAMA', 'il pigiama', 'casa', C.mint],
+      ['COPERTA', 'la coperta', 'casa', C.pinkPop], ['CUSCINO', 'il cuscino', 'casa', C.sun],
+      ['FINESTRA', 'la finestra', 'casa', C.blueberry], ['GIARDINO', 'il giardino', 'fiore', C.leaf],
+      ['CASTELLO', 'il castello', 'casa', C.berry], ['PISCINA', 'la piscina', 'sole', C.water],
+      ['SPIAGGIA', 'la spiaggia', 'sole', C.sand], ['MATTONE', 'il mattone', 'casa', C.berry],
+      ['MATITA', 'la matita', 'casa', C.tangerine], ['COLORI', 'i colori', 'fiore', C.pinkPop],
+      ['DISEGNO', 'il disegno', 'fiore', C.plum], ['MUSICA', 'la musica', 'fiore', C.sun],
+      ['CARTA', 'la carta', 'casa', C.cream], ['PENNELLO', 'il pennello', 'fiore', C.blueberry],
+      ['PUZZLE', 'il puzzle', 'palla', C.tangerine], ['GIOSTRA', 'la giostra', 'palla', C.pinkPop],
+      ['ALTALENA', "l'altalena", 'palla', C.leaf], ['AEREO', "l'aereo", 'bus', C.blueberry],
+      ['NAVE', 'la nave', 'bus', C.blueberry], ['RAZZO', 'il razzo', 'bus', C.tangerine],
+      ['PIANETA', 'il pianeta', 'sole', C.blueberry], ['SCIVOLO', 'lo scivolo', 'palla', C.pinkPop],
+      ['DINOSAURO', 'il dinosauro', 'dino', C.dino], ['VOLPE', 'la volpe', 'dino', C.tangerine],
+      ['CONIGLIO', 'il coniglio', 'dino', C.cream], ['ELEFANTE', "l'elefante", 'dino', C.blueberry],
+      ['TARTARUGA', 'la tartaruga', 'dino', C.leaf], ['ZEBRA', 'la zebra', 'dino', C.ink],
+      ['CANARINO', 'il canarino', 'dino', C.mint], ['PULMINO', 'il pulmino', 'bus', C.sun]
+    ]
+  };
+  function makeWords(bank) { return bank.map(function (x) { return { word: x[0], name: x[1], kind: x[2], color: x[3] }; }); }
+  var WORDS = { piccolo: makeWords(WORD_BANK.piccolo), grande: makeWords(WORD_BANK.grande) };
+  G.lettersCatalog = function () { return { piccolo: WORDS.piccolo.slice(), grande: WORDS.grande.slice() }; };
   var S = {
     phase: 'play', round: 0, word: null, mode: 0, slots: [], tray: [],
     next: 0, active: -1, flash: 0, idle: 0, reveal: 0, song: 0
@@ -33,8 +112,8 @@
     return b;
   }
   function wordForRound() {
-    var max = big() ? WORDS.length : 5;
-    return WORDS[S.round % max];
+    var bank = big() ? WORDS.grande : (S.round < 6 ? WORDS.piccolo.slice(0, 7) : WORDS.piccolo);
+    return bank[S.round % bank.length];
   }
   function modeForRound() {
     // The three modes are a gentle spiral: every child sees all of them.
@@ -50,11 +129,15 @@
     return arr;
   }
   function startRound() {
-    var w = wordForRound(), i, extras = big() ? ['R', 'T'] : [];
+    var w = wordForRound(), i, extras = [];
     S.word = w; S.mode = modeForRound(); S.slots = [];
     for (i = 0; i < w.word.length; i++) S.slots.push('');
     S.tray = shuffleLetters(w.word);
-    for (i = 0; i < extras.length; i++) S.tray.push(extras[i]);
+    if (big()) {
+      var candidates = 'BCDFGHQRTVZ'.split('');
+      for (i = 0; i < candidates.length && extras.length < 2; i++) if (w.word.indexOf(candidates[i]) < 0) extras.push(candidates[i]);
+      for (i = 0; i < extras.length; i++) S.tray.push(extras[i]);
+    }
     S.next = 0; S.phase = 'play'; S.active = -1; S.flash = 0; S.idle = 0;
     S.reveal = S.mode === 2 ? 1 : 0; S.song = 0;
     G.say('Ascolta: ' + w.name + '.');

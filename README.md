@@ -163,14 +163,16 @@ src/02-cloud.js     sincronizzazione opzionale (inerte se non configurata)
 src/10-overworld.js la giungla: mondo largo 2560, camera che segue il dino,
                     sei postazioni e due frecce per saltare da una meta a l altra
 src/20-conta.js     La Radura dei Numeri
-src/27-lettere.js   La Radura delle Lettere: ascolto, lettere mischiate e copia guidata
+src/27-lettere.js   La Radura delle Lettere: catalogo configurabile (50 parole
+                    Piccolo, 100 Grande), ascolto, lettere mischiate e copia guidata
 src/21-fili.js      I Fili Intrecciati (con generatore di griglie risolvibili)
 src/22-nido.js      Il Nido
 src/01d-art-casa.js il guscio della stanza, la legge prospettica e i mobili
 src/23-guardaroba.js Il Guardaroba: casse, baule dei giocattoli, specchio,
                     ritratti, e il dino del fratello in sola lettura
 src/24-casetta.js   La Casetta: due stanze, il negozio, il dino che ci abita
-src/25-kart.js      Il Girotondo dei Suoni: memoria, ritmo, quattro strumenti
+src/25-kart.js      Il Girotondo dei Suoni: memoria, ritmo sincronizzato,
+                    contatore visivo e quattro strumenti
 src/01e-art-bus.js  il pulmino di profilo, fermate, pompa, autolavaggio, sbarra
 src/26-bus.js       Il Pulmino: mappa dall'alto, scelte, attività laterali, garage
 src/90-account.js   accesso, nuovo giocatore, segreto, impostazioni genitori
