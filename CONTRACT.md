@@ -137,6 +137,7 @@ G.save.mute     // bool
 G.save.hat      // id cappellino equipaggiato o null   — di 'guardaroba'
 G.save.hats     // array di id cappellini posseduti    — di 'guardaroba'
 G.save.conta    // ramo libero del minigioco "Conta i Frutti"
+G.save.lettere  // ramo libero del minigioco "La Radura delle Lettere"
 G.save.fili     // ramo libero del minigioco "Fili Intrecciati"
 G.save.nido     // ramo libero della base "Il Nido"
 G.save.guardaroba // ramo libero del "Guardaroba" (+ possiede hat/hats)
@@ -266,6 +267,7 @@ Nido). Non sono buoni propositi nei commenti: sono asserzioni.
 | `src/10-overworld.js` | `giungla` | mappa con il dino che cammina fra i nodi |
 | `src/20-conta.js` | `conta` | "La Radura dei Numeri" — matematica |
 | `src/21-fili.js` | `fili` | "I Fili Intrecciati" — flow/pallini |
+| `src/27-lettere.js` | `lettere` | "La Radura delle Lettere" — composizione di parole |
 | `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
 | `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
 | `src/24-casetta.js` | `casetta` | "La Casetta" — due stanze da arredare coi frutti |

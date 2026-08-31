@@ -460,7 +460,7 @@
         });
         row(pm.confirmReset > 0 ? 'Sicuro? Tocca ancora' : 'Azzera i progressi', pm.confirmReset > 0 ? C.berry : '#a8998a', function () {
           if (pm.confirmReset > 0) {
-            var keep = { fruits: 0, stars: 0, mute: G.save.mute, hat: null, hats: [], conta: {}, fili: {}, nido: {}, seen: {}, playSec: 0, updated: 0 };
+            var keep = { fruits: 0, stars: 0, mute: G.save.mute, hat: null, hats: [], conta: {}, fili: {}, nido: {}, lettere: {}, seen: {}, playSec: 0, updated: 0 };
             G.save = keep; G.saveFlush(); pm.confirmReset = 0; G.sfx('pop');
           } else { pm.confirmReset = 4; }
         }, pm.confirmReset > 0 ? 'annulla fra ' + Math.ceil(pm.confirmReset) + 's' : null);

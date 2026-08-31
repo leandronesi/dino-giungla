@@ -200,7 +200,7 @@
   function blankSave() {
     return {
       fruits: 0, stars: 0, mute: false, hat: null, hats: [],
-      conta: {}, fili: {}, nido: {}, seen: {}, playSec: 0, updated: 0
+      conta: {}, fili: {}, nido: {}, lettere: {}, seen: {}, playSec: 0, updated: 0
     };
   }
   function fillSave(s) {

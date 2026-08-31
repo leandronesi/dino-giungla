@@ -1,11 +1,12 @@
 # 🦕 Dino Giungla
 
 Un piccolo mondo di giochi per bambini di **3 e 6 anni**. Un dinosauro cammina
-in una giungla e si ferma in sette posti:
+in una giungla e si ferma in otto posti:
 
 | Posto | Cosa si fa | Ispirazione |
 |---|---|---|
 | **La Radura dei Numeri** | conta, somma, sottrai — tutto con oggetti da contare a schermo | *Treasure MathStorm!* |
+| **La Radura delle Lettere** | ascolta e componi i nomi di oggetti familiari, con aiuti progressivi | giochi di parole |
 | **I Fili Intrecciati** | unisci i pallini uguali senza incrociare i fili | *Flow Free* |
 | **Il Nido** | compri cespugli e nidi, producono frutti nel tempo, li raccogli | i gestionali/idle |
 | **Il Guardaroba** | vesti il tuo dino, e lui reagisce a quello che gli metti | i giochi di vestizione |
@@ -162,6 +163,7 @@ src/02-cloud.js     sincronizzazione opzionale (inerte se non configurata)
 src/10-overworld.js la giungla: mondo largo 2560, camera che segue il dino,
                     sei postazioni e due frecce per saltare da una meta a l altra
 src/20-conta.js     La Radura dei Numeri
+src/27-lettere.js   La Radura delle Lettere: ascolto, lettere mischiate e copia guidata
 src/21-fili.js      I Fili Intrecciati (con generatore di griglie risolvibili)
 src/22-nido.js      Il Nido
 src/01d-art-casa.js il guscio della stanza, la legge prospettica e i mobili

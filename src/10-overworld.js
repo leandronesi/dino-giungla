@@ -140,8 +140,9 @@
     { id: 'kart', name: 'Il Girotondo dei Suoni', go: 'Andiamo al Girotondo dei Suoni!', branch: 'kart', at: 0.345, sway: 4.4 },
     { id: 'bus', name: 'Il Pulmino', go: 'Andiamo col Pulmino!', branch: 'bus', at: 0.490, sway: 2.1 },
     { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.635, sway: 5.5 },
-    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.780, sway: 3.7 },
-    { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.925, sway: 2.6 }
+    { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.760, sway: 3.7 },
+    { id: 'lettere', name: 'La Radura delle Lettere', go: 'Andiamo alla Radura delle Lettere!', branch: 'lettere', at: 0.850, sway: 1.4 },
+    { id: 'casetta', name: 'La Casetta', go: 'Andiamo alla Casetta!', branch: 'casetta', at: 0.950, sway: 2.6 }
   ];
 
   /* How much has been done in each place, for the badge the big one gets.
@@ -513,9 +514,26 @@
     c.restore();
   }
 
+  function iconLettere(c, cx, cy, r) {
+    c.save();
+    c.fillStyle = G.C.plum; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.08; c.lineJoin = 'round';
+    G.roundRect(c, cx - r * 0.62, cy - r * 0.46, r * 1.24, r * 0.88, r * 0.12); c.fill(); c.stroke();
+    c.fillStyle = G.C.cream;
+    G.roundRect(c, cx - r * 0.48, cy - r * 0.32, r * 0.96, r * 0.58, r * 0.08); c.fill();
+    c.fillStyle = G.C.berry;
+    c.beginPath(); c.arc(cx - r * 0.22, cy - r * 0.04, r * 0.12, 0, 7); c.fill();
+    c.fillStyle = G.C.blueberry;
+    c.beginPath(); c.arc(cx + r * 0.10, cy - r * 0.04, r * 0.12, 0, 7); c.fill();
+    c.fillStyle = G.C.mint;
+    c.beginPath(); c.arc(cx + r * 0.35, cy - r * 0.04, r * 0.12, 0, 7); c.fill();
+    c.strokeStyle = G.C.sun; c.lineWidth = r * 0.09;
+    c.beginPath(); c.moveTo(cx - r * 0.35, cy + r * 0.37); c.lineTo(cx + r * 0.35, cy + r * 0.37); c.stroke();
+    c.restore();
+  }
+
   var ICONS = {
     conta: iconConta, fili: iconFili, nido: iconNido,
-    guardaroba: iconGuardaroba, casetta: iconCasetta, kart: iconKart, bus: iconBus
+    guardaroba: iconGuardaroba, casetta: iconCasetta, kart: iconKart, bus: iconBus, lettere: iconLettere
   };
 
   function drawBadge(c, x, y, n) {

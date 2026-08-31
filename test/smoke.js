@@ -260,7 +260,7 @@ phase = 'avvio';
 pump(20);
 if (!G.current) fail('nessuna scena attiva dopo l avvio');
 
-const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'];
+const expected = ['accesso', 'nuovo', 'segreto', 'gate', 'genitori', 'giungla', 'conta', 'fili', 'nido', 'lettere', 'guardaroba', 'casetta', 'kart', 'bus'];
 const missing = expected.filter((s) => !G.sceneOf(s));
 if (missing.length) fail('scene mancanti: ' + missing.join(', '));
 
@@ -290,7 +290,7 @@ if (!G.account) fail('iscrizione non ha creato/collegato un account');
 else if (G.current !== 'giungla') fail('dopo l iscrizione la scena e "' + G.current + '" invece di giungla');
 
 // 2. every scene, at both levels, with a fuzz of taps and drags
-const scenes = ['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus', 'genitori', 'gate', 'accesso'];
+const scenes = ['giungla', 'conta', 'fili', 'nido', 'lettere', 'guardaroba', 'casetta', 'kart', 'bus', 'genitori', 'gate', 'accesso'];
 [1, 2].forEach((lvl) => {
   if (!G.account) return;
   G.accounts.update(G.account.id, { level: lvl });
@@ -329,6 +329,26 @@ if (G.sceneOf('fili')) {
     }
   }
   pump(60);
+}
+
+// 3b. La Radura delle Lettere: every mode is playable and has a gentle helper.
+phase = 'lettere';
+if (G.sceneOf('lettere')) {
+  G.go('lettere'); pump(40);
+  if (typeof G.lettersState !== 'function' || typeof G.lettersChoose !== 'function' || typeof G.lettersHelp !== 'function') {
+    fail('La Radura delle Lettere non espone stato/input per il collaudo');
+  } else {
+    for (let i = 0; i < 1600 && (G.save.lettere || {}).done < 5; i++) {
+      const q = G.lettersState();
+      if (q.phase === 'play' && q.expected) {
+        const tray = (q.tray || []);
+        G.lettersChoose(q.expected);
+      }
+      if (i % 180 === 0) G.lettersHelp();
+      pump(1);
+    }
+    if (typeof (G.save.lettere || {}).done !== 'number') fail('G.save.lettere.done non e un numero');
+  }
 }
 
 // 4. long session at the nest: offline earnings, buying, upgrading
@@ -612,7 +632,7 @@ if (G.sceneOf('bus')) {
 phase = 'salvataggio vuoto';
 const fresh = G.accounts.create({ name: 'Vuoto', color: '#57c98a', level: 2, secret: null });
 G.accounts.login(fresh.id);
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'lettere', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
   phase = s + ' (save vuoto)';
   G.go(s); pump(40);
   for (let i = 0; i < 40; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
@@ -624,7 +644,7 @@ G.save.conta = { done: 'sette' };
 G.save.fili = { done: -3, size: 99 };
 G.save.nido = { items: null, lastSeen: 'ieri' };
 G.save.hats = null;
-['giungla', 'conta', 'fili', 'nido', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
+['giungla', 'conta', 'fili', 'nido', 'lettere', 'guardaroba', 'casetta', 'kart', 'bus'].forEach((s) => {
   phase = s + ' (save corrotto)';
   G.go(s); pump(40);
   for (let i = 0; i < 30; i++) { tap(60 + Math.random() * 1160, 120 + Math.random() * 560); pump(2); }
