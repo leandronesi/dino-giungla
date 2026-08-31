@@ -2561,10 +2561,25 @@ html, body {
     if (WALLS[wi].tint) {
       c.save(); c.fillStyle = WALLS[wi].tint; c.fillRect(0, 96, W, F - 96); c.restore();
     }
+    // shallow side walls and a picture rail: enough architecture to stop the
+    // wallpaper reading as a flat stage, without introducing a false ceiling
+    c.save();
+    c.fillStyle = 'rgba(72,45,22,.08)';
+    c.beginPath(); c.moveTo(0,96); c.lineTo(92,126); c.lineTo(92,F); c.lineTo(0,F); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(W,96); c.lineTo(W-92,126); c.lineTo(W-92,F); c.lineTo(W,F); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(78,48,24,.20)'; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(0,122); c.lineTo(W,122); c.stroke();
+    c.restore();
 
     // floor: boards that really converge — width as a function of y
     c.fillStyle = vgrad(c, 'floor' + fi, F, B + 20, _shade(FLOORS[fi], -26), FLOORS[fi]);
     c.fillRect(0, F, W, 720 - F);
+    c.save();                                    // long seams converge to the room centre
+    c.strokeStyle = 'rgba(60,36,16,.13)'; c.lineWidth = 2;
+    for (i = -1; i <= 9; i++) {
+      c.beginPath(); c.moveTo(640, F); c.lineTo(i * 160, 720); c.stroke();
+    }
+    c.restore();
     c.save();
     c.strokeStyle = 'rgba(60,36,16,.30)';
     c.lineWidth = 3;
@@ -2593,6 +2608,11 @@ html, body {
     c.globalAlpha = 0.16;
     _ell(c, 640, F + 120, 470, 470 * A.TILT * 1.5, 0);
     c.fillStyle = C.sun || '#ffd75e'; c.fill();
+    c.restore();
+
+    // a broad sunbeam gives furniture a common light direction
+    c.save(); c.globalAlpha = 0.055; c.fillStyle = '#fff6d0';
+    c.beginPath(); c.moveTo(890, 122); c.lineTo(1080, 122); c.lineTo(900, 720); c.lineTo(530, 720); c.closePath(); c.fill();
     c.restore();
 
     c.restore();
@@ -3432,7 +3452,7 @@ html, body {
   var STATIONS = [
     { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.055, sway: 0.0 },
     { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.200, sway: 1.9 },
-    { id: 'kart', name: 'Il Girotondo', go: 'Andiamo al Girotondo!', branch: 'kart', at: 0.345, sway: 4.4 },
+    { id: 'kart', name: 'Il Girotondo dei Suoni', go: 'Andiamo al Girotondo dei Suoni!', branch: 'kart', at: 0.345, sway: 4.4 },
     { id: 'bus', name: 'Il Pulmino', go: 'Andiamo col Pulmino!', branch: 'bus', at: 0.490, sway: 2.1 },
     { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.635, sway: 5.5 },
     { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.780, sway: 3.7 },
@@ -3773,26 +3793,23 @@ html, body {
      itself — so the sign is a picture of what happens inside. */
   function iconKart(c, cx, cy, r) {
     c.save();
-    c.strokeStyle = '#c8a06a'; c.lineWidth = r * 0.40; c.lineCap = 'round';
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.72, r * 0.44, 0, 0, 7); c.stroke();
-    c.strokeStyle = 'rgba(90,67,38,.55)'; c.lineWidth = r * 0.06;
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.92, r * 0.64, 0, 0, 7); c.stroke();
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.52, r * 0.24, 0, 0, 7); c.stroke();
-    var col = (G.account && G.account.color) || G.C.dino;
-    var kx = cx + r * 0.70, ky = cy + r * 0.08;
-    c.fillStyle = G.C.barkDark;
-    [[-r * 0.10, -r * 0.13], [-r * 0.10, r * 0.13], [r * 0.10, -r * 0.13], [r * 0.10, r * 0.13]].forEach(function (o) {
-      c.beginPath(); c.ellipse(kx + o[0], ky + o[1], r * 0.07, r * 0.05, 0, 0, 7); c.fill();
-    });
-    c.fillStyle = col; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.05;
-    c.beginPath(); c.ellipse(kx, ky, r * 0.19, r * 0.15, 0, 0, 7); c.fill(); c.stroke();
-    c.fillStyle = G.C.cream;                        // the little chequered flag
-    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.26, r * 0.20);
-    c.fillStyle = G.C.ink;
-    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.13, r * 0.10);
-    c.fillRect(cx - r * 0.73, cy - r * 0.52, r * 0.13, r * 0.10);
-    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.06;
-    c.beginPath(); c.moveTo(cx - r * 0.86, cy - r * 0.62); c.lineTo(cx - r * 0.86, cy - r * 0.16); c.stroke();
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = G.C.ink; c.lineWidth = r * 0.07;
+    c.fillStyle = G.C.berry;
+    c.beginPath(); c.ellipse(cx, cy + r * 0.14, r * 0.43, r * 0.30, 0, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = G.C.cream;
+    c.beginPath(); c.ellipse(cx, cy - r * 0.08, r * 0.45, r * 0.20, 0, 0, 7); c.fill(); c.stroke();
+    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.08;
+    c.beginPath();
+    c.moveTo(cx - r * 0.22, cy - r * 0.28); c.lineTo(cx - r * 0.40, cy - r * 0.65);
+    c.moveTo(cx + r * 0.22, cy - r * 0.28); c.lineTo(cx + r * 0.42, cy - r * 0.62);
+    c.stroke();
+    c.fillStyle = G.C.sun; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.05;
+    c.beginPath(); c.moveTo(cx + r * 0.48, cy + r * 0.08);
+    c.quadraticCurveTo(cx + r * 0.50, cy - r * 0.35, cx + r * 0.72, cy - r * 0.42);
+    c.quadraticCurveTo(cx + r * 0.90, cy - r * 0.30, cx + r * 0.91, cy + r * 0.08);
+    c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.arc(cx + r * 0.70, cy + r * 0.13, r * 0.08, 0, 7); c.fill();
     c.restore();
   }
 
@@ -5428,6 +5445,8 @@ html, body {
   var own = null;          // cell -> colour slot | -1
   var lines = [];          // colour slot -> { cells, closed, glow }
   var active = -1, lastBad = -9, pulse = 0;
+  // The helper is a visual invitation, never an automatic solution.
+  var help = { t: 0, k: -1, from: null, to: null, reopen: false };
   var won = false, winT = 0, perfect = false, spoke = false;
   var bgGrad = null;
 
@@ -5456,6 +5475,8 @@ html, body {
     lines = [];
     for (i = 0; i < pairs; i++) lines.push({ cells: [], closed: false, glow: 0 });
     active = -1; won = false; winT = 0; perfect = false; spoke = false;
+    nearT = 0;
+    help.t = 0; help.k = -1; help.from = null; help.to = null; help.reopen = false;
     rebuildOwn();
   }
 
@@ -5501,8 +5522,11 @@ html, body {
      has to stretch one of them a bit further. A grid-filling solution always
      exists, so this can never be a dead end. */
   function drawGaps(c) {
-    if (won || G.level !== 2 || !own || !allClosed() || fullGrid()) return;
-    var i, r, cc, k = 0.30 + Math.sin(pulse * 5) * 0.22;
+    // In Grande the empty cells are part of the visual rule from the first
+    // frame. They remain quiet and friendly: joining pairs still feels like a
+    // win, while the little sun spots make the final stretch discoverable.
+    if (won || G.level !== 2 || !own || fullGrid()) return;
+    var i, r, cc, k = 0.11 + Math.sin(pulse * 4.2) * 0.055;
     c.save();
     for (i = 0; i < own.length; i++) {
       if (own[i] >= 0) continue;
@@ -5566,6 +5590,81 @@ html, body {
   function fullGrid() {
     for (var i = 0; i < own.length; i++) if (own[i] < 0) return false;
     return true;
+  }
+
+  function neighboursOf(r, c, out) {
+    out.length = 0;
+    if (r > 0) out.push([r - 1, c]);
+    if (r < n - 1) out.push([r + 1, c]);
+    if (c > 0) out.push([r, c - 1]);
+    if (c < n - 1) out.push([r, c + 1]);
+    return out;
+  }
+
+  /* Pick one move that is actionable right now. For a finished pair, choosing
+     any line cell next to a hole means grabbing there reopens the thread and
+     the child can visibly stretch it. */
+  function findHelpMove() {
+    var i, k, L, j, cell, ns = [], q, rr, cc;
+    if (!own) return null;
+    if (allClosed() && !fullGrid()) {
+      for (k = 0; k < lines.length; k++) {
+        L = lines[k];
+        for (j = 0; j < L.cells.length; j++) {
+          cell = L.cells[j]; neighboursOf(cell[0], cell[1], ns);
+          for (q = 0; q < ns.length; q++) {
+            rr = ns[q][0]; cc = ns[q][1];
+            if (own[rr * n + cc] < 0 && dotOf[rr * n + cc] < 0) {
+              return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: true };
+            }
+          }
+        }
+      }
+    }
+    for (k = 0; k < lines.length; k++) {
+      L = lines[k];
+      if (L.closed || !L.cells.length) continue;
+      cell = L.cells[L.cells.length - 1]; neighboursOf(cell[0], cell[1], ns);
+      for (q = 0; q < ns.length; q++) {
+        rr = ns[q][0]; cc = ns[q][1];
+        if (!blockedFor(k, rr, cc)) return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: false };
+      }
+    }
+    // No thread started yet: point to the first endpoint and one legal next
+    // cell from its guaranteed construction path.
+    for (k = 0; k < lines.length; k++) {
+      if (lines[k].closed) continue;
+      cell = dots[k][0]; neighboursOf(cell[0], cell[1], ns);
+      for (q = 0; q < ns.length; q++) {
+        rr = ns[q][0]; cc = ns[q][1];
+        if (!blockedFor(k, rr, cc)) return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: false };
+      }
+    }
+    return null;
+  }
+
+  function showHelp() {
+    var move = findHelpMove();
+    if (!move) return;
+    help.t = 5.2; help.k = move.k; help.from = move.from; help.to = move.to; help.reopen = move.reopen;
+    G.sfx('chime');
+    G.say(move.reopen ? 'Tocca il filo e allungalo verso il buchino!' : 'Guarda: porta il filo qui!');
+  }
+
+  function drawHelp(c) {
+    if (help.t <= 0 || !help.from || !help.to || won) return;
+    var x1 = cxOf(help.from[1]), y1 = cyOf(help.from[0]);
+    var x2 = cxOf(help.to[1]), y2 = cyOf(help.to[0]);
+    var a = .52 + Math.sin(pulse * 8) * .18;
+    c.save();
+    c.globalAlpha = a;
+    c.strokeStyle = C.sun; c.lineWidth = 12; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    c.fillStyle = C.sun; c.beginPath(); c.arc(x2, y2, cs * .28, 0, 6.2832); c.fill();
+    c.strokeStyle = C.cream; c.lineWidth = 5; c.beginPath(); c.arc(x2, y2, cs * .38, 0, 6.2832); c.stroke();
+    c.fillStyle = C.ink; c.beginPath();
+    c.moveTo(x2 - 13, y2 - 8); c.lineTo(x2 + 17, y2); c.lineTo(x2 - 13, y2 + 8); c.closePath(); c.fill();
+    c.restore();
   }
 
   var nearT = 0;              // all pairs joined, but the grid is not full yet
@@ -5760,24 +5859,40 @@ html, body {
     cc.restore();
   }
 
+  function iconHelp(cc, cx, cy, s) {
+    cc.save();
+    cc.fillStyle = '#fff6e0'; cc.strokeStyle = '#5b2c00'; cc.lineWidth = Math.max(3, s * .08);
+    cc.beginPath(); cc.arc(cx, cy - s * .08, s * .34, 0, 6.2832); cc.fill(); cc.stroke();
+    G.text('?', cx, cy + s * .20, { ctx: cc, size: s * .58, color: C.plum, weight: 900 });
+    cc.restore();
+  }
+
   function drawExample(c, x, y, w, h) {
-    var ax = x + w * .24, ay = y + h * .68, bx = x + w * .78, by = y + h * .34, mx = x + w * .52;
+    var cols = 5, rows = 3, cell = Math.min(24, (h - 22) / rows), sx = x + 24, sy = y + 10;
+    var r, cc, i, px, py, t = Math.floor(pulse * 5) % (cols * rows);
     c.save();
     c.fillStyle = 'rgba(255,246,224,.16)';
     G.roundRect(c, x, y, w, h, 20); c.fill();
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(ax, ay); c.lineTo(mx, ay); c.lineTo(mx, by); c.lineTo(bx, by);
-    c.lineWidth = 24; c.strokeStyle = G.shade(C.mint, -66); c.stroke();
-    c.beginPath();
-    c.moveTo(ax, ay); c.lineTo(mx, ay); c.lineTo(mx, by); c.lineTo(bx, by);
-    c.lineWidth = 16; c.strokeStyle = C.mint; c.stroke();
-    c.fillStyle = C.mint;
-    c.beginPath(); c.arc(ax, ay, 20, 0, 6.2832); c.fill();
-    c.beginPath(); c.arc(bx, by, 20, 0, 6.2832); c.fill();
+    // Every square is occupied; the travelling highlight demonstrates that
+    // the goal is the whole board, not merely two matching dots.
+    for (r = 0; r < rows; r++) for (cc = 0; cc < cols; cc++) {
+      px = sx + cc * cell; py = sy + r * cell;
+      c.fillStyle = ((r + cc) & 1) ? '#e7d9b6' : '#f0e5c8';
+      G.roundRect(c, px, py, cell - 3, cell - 3, 5); c.fill();
+      if (r * cols + cc === t) {
+        c.fillStyle = C.sun; c.globalAlpha = .8;
+        G.roundRect(c, px + 2, py + 2, cell - 7, cell - 7, 4); c.fill(); c.globalAlpha = 1;
+      }
+    }
+    c.strokeStyle = C.mint; c.lineWidth = 7; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(sx + cell * .4, sy + cell * .4);
+    for (i = 1; i < cols * rows; i++) {
+      r = Math.floor(i / cols); cc = r % 2 ? cols - 1 - (i % cols) : i % cols;
+      c.lineTo(sx + cc * cell + cell * .4, sy + r * cell + cell * .4);
+    }
+    c.stroke();
     c.restore();
-    glyph(c, 'triangolo', ax, ay, 11, C.cream);
-    glyph(c, 'triangolo', bx, by, 11, C.cream);
+    G.text('tutta piena!', x + w * .73, y + h * .55, { size: 23, color: C.cream, align: 'center', stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
   }
 
   function drawSide(c) {
@@ -5804,15 +5919,20 @@ html, body {
     G.text(doneCount + ' / ' + pairs, 1000, 366, { size: 38, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9 });
     if (won) return;
     G.ui.button({
-      x: 810, y: G.level === 2 ? 396 : 424, w: 380, h: 140, r: 30,
-      label: 'Ricomincia', color: C.leaf, fontSize: 40, iconSize: 60,
+      x: 810, y: G.level === 2 ? 396 : 424, w: 380, h: G.level === 2 ? 96 : 140, r: 26,
+      label: 'Ricomincia', color: C.leaf, fontSize: G.level === 2 ? 32 : 40, iconSize: G.level === 2 ? 52 : 60,
       icon: iconRestart,
       onTap: function () { resetLines(); }
     });
     if (G.level === 2) {
       G.ui.button({
-        x: 810, y: 552, w: 380, h: 140, r: 30,
-        label: 'Nuova', sub: 'griglia', color: C.blueberry, fontSize: 40, iconSize: 60,
+        x: 810, y: 500, w: 380, h: 96, r: 26,
+        label: 'Aiutami', sub: 'una mossa', color: C.plum, fontSize: 32, iconSize: 52,
+        icon: iconHelp, onTap: function () { showHelp(); }
+      });
+      G.ui.button({
+        x: 810, y: 604, w: 380, h: 96, r: 26,
+        label: 'Nuova', sub: 'griglia', color: C.blueberry, fontSize: 32, iconSize: 52,
         icon: iconGrid,
         onTap: function () { newGrid(); G.sfx('whoosh'); }
       });
@@ -5904,6 +6024,7 @@ html, body {
       pulse += dt;
       for (i = 0; i < lines.length; i++) if (lines[i].glow > 0) lines[i].glow = Math.max(0, lines[i].glow - dt * 1.6);
       if (nearT > 0) nearT = Math.max(0, nearT - dt);
+      if (help.t > 0) help.t = Math.max(0, help.t - dt);
       if (won) {
         winT += dt;
         if (!spoke && winT > .8) {
@@ -5935,6 +6056,7 @@ html, body {
         c.restore();
       }
       drawGaps(c);
+      drawHelp(c);
       drawSide(c);
       if (won && winT > .85) drawWinPanel(c);
     },
@@ -7804,7 +7926,7 @@ html, body {
 
   /* ---------------------------------------------------------------- state */
   var S = {
-    shop: false, brush: false,
+    shop: false, brush: false, edit: false,
     fly: null, drag: null,
     party: 0, idle: 0, nudges: 0, sayT: 0, sayMsg: null,
     softT: 0, softX: 0, softY: 0,
@@ -7991,19 +8113,24 @@ html, body {
   G.scene('casetta', {
     enter: function () {
       var g = br();
-      S.shop = false; S.brush = false; S.fly = null; S.drag = null;
+      S.shop = false; S.brush = false; S.edit = false; S.fly = null; S.drag = null;
       S.party = 0; S.idle = 0; S.nudges = 0; S.softT = 0;
       S.sayMsg = null; S.sayT = 0;
       S.moment = 0; S.beat = 0; S.tintK = 1; S.tintFrom = 0;
       S.ask = null; S.askT = 0; S.fade = 0; S.fadeTo = -1;
       g.room = 0;
 
-      /* Two presents, one per room, so neither is ever empty on the first visit:
-         a room with nothing in it is the only moment the house can look broken. */
-      if (!g.gift) {
-        g.gift = true;
-        [BY_ID.tappeto, BY_ID.ciotola].forEach(function (d) {
-          g.items.push({ id: d.id, c: 0, r: d.r, x: d.home[0], y: d.home[1] });
+      /* A real starter home, migrated for existing saves too. A bowl in one
+         room and a rug in the other made the first visit look like unfinished
+         scenery. Purchases still expand and personalise it; architecture no
+         longer has to be bought before the place reads as a home. */
+      if (g.starter !== 2) {
+        g.starter = 2; g.gift = true;
+        ['ciotola', 'pouf', 'finestra', 'tappeto', 'lettino', 'lampada'].forEach(function (id) {
+          var d = BY_ID[id];
+          if (g.items.some(function (it) { return it.id === id; })) return;
+          var spot = d.on === 'wall' ? { x: d.home[0], y: d.home[1] } : placeNew(d);
+          g.items.push({ id: d.id, c: 0, r: d.r, x: spot.x, y: spot.y });
         });
         G.saveNow();
       }
@@ -8023,7 +8150,7 @@ html, body {
       }, 420);
     },
 
-    exit: function () { S.fly = null; S.drag = null; S.shop = false; },
+    exit: function () { S.fly = null; S.drag = null; S.shop = false; S.edit = false; },
 
     update: function (dt) {
       if (S.softT > 0) S.softT = Math.max(0, S.softT - dt);
@@ -8049,6 +8176,7 @@ html, body {
         if (S.fade < 0) S.fade = 0;
       }
 
+      if (S.edit) return;                       // furnishing mode is calm and still
       if (S.ask) { S.askT -= dt; if (S.askT <= 0) newAsk(); }
 
       if (S.party > 0) {
@@ -8091,7 +8219,7 @@ html, body {
     onDown: function (p) {
       S.idle = 0;
       if (S.fade > 0) return;
-      if (S.shop) { S.shop = false; return; }
+      if (S.shop && !S.edit) { S.shop = false; return; }
 
       var dr = ROOMS[room()].door;              // the door: walk through it
       var doorX = dr === 1 ? 1204 : 76;
@@ -8166,11 +8294,16 @@ html, body {
       if (A.HOUSE_FRONT[it.id]) A.houseFront(c, it.id, it.x, it.y, d.w * A.roomDepth(it.y), { c: it.c });
     });
 
-    drawAsk(c);
+    if (!S.edit) drawAsk(c);
     drawFly(c);
-    drawPartyButton(c);
-    if (S.party > 0) drawParty(c);
-    if (big()) drawShopL2(c); else drawShopL1(c);
+    if (!S.edit) drawPartyButton(c);
+    if (!S.edit && S.party > 0) drawParty(c);
+    if (S.edit) {
+      c.save(); c.fillStyle = 'rgba(255,246,224,.14)'; c.fillRect(0, 96, W, H - 96); c.restore();
+    }
+    drawRoomTabs(c);
+    drawEditToggle(c);
+    if (S.edit) { if (big()) drawShopL2(c); else drawShopL1(c); }
     drawSoftNo(c);
     drawFade(c);
     void i;
@@ -8359,6 +8492,35 @@ html, body {
     c.restore();
   }
 
+  /* Normal play keeps the room immersive. The full toolbox appears only while
+     furnishing, behind one stable button that never changes side. */
+  function drawRoomTabs(c) {
+    if (S.edit) return;
+    [0, 1].forEach(function (r) {
+      G.ui.button({
+        id: 'roomtab' + r, x: 392 + r * 252, y: 108, w: 236, h: 92, r: 24,
+        label: ROOMS[r].name, fontSize: 30,
+        color: room() === r ? C.leaf : C.cream,
+        textColor: room() === r ? C.cream : C.ink,
+        onTap: function () { if (room() !== r) goRoom(r); }
+      });
+    });
+  }
+
+  function drawEditToggle(c) {
+    G.ui.round({
+      id: 'casaedit', x: 1090, y: 160, r: 52,
+      color: S.edit ? C.leaf : C.tangerine,
+      icon: function (cc, x, y, r) { cartGlyph(cc, x, y, r * .78); },
+      onTap: function () {
+        S.edit = !S.edit; S.shop = S.edit;
+        if (!S.edit) { S.brush = false; S.drag = null; }
+        G.sfx('pop');
+      }
+    });
+    if (S.edit) G.text('ARREDA', 1090, 226, { ctx: c, size: 22, color: C.cream, stroke: 'rgba(43,29,18,.7)', strokeWidth: 6 });
+  }
+
   /* ---------------------------------------------------------- shop, level 1 */
   function shopList() {
     var out = [], i, d;
@@ -8417,11 +8579,10 @@ html, body {
   }
 
   /* ---------------------------------------------------------- shop, level 2 */
-  /* The tool column lives on the wall WITHOUT the door, so it swaps side between
-     rooms. Geometrically forced, and the weakest part of this layout: a button
-     that moves is a button you have to look for. */
+  /* Furnishing mode owns its overlay, so the toolbox can finally stay put in
+     both rooms instead of jumping sides around the door. */
   function drawShopL2(c) {
-    var tx = ROOMS[room()].door === 1 ? 104 : 1176;
+    var tx = 104;
     G.ui.round({
       id: 'cart', x: tx, y: 636, r: 64, color: S.shop ? C.leaf : C.tangerine,
       icon: function (cc, x, y, r) { cartGlyph(cc, x, y, r * 0.8); },
@@ -8445,7 +8606,7 @@ html, body {
     if (!S.shop) return;
 
     var list = shopList(), i;
-    var px = ROOMS[room()].door === 1 ? 210 : 410;
+    var px = 210;
     A.panel(c, px, 150, 660, 540, { r: 28 });
     G.text('Il carretto', px + 330, 196, { size: 36, color: C.ink });
     for (i = 0; i < 6 && i < list.length; i++) {
@@ -8548,1269 +8709,352 @@ html, body {
 
 
 /* ==================== 25-kart.js ==================== */
-/* Dino Giungla — "Il Girotondo" (scene: kart).
-
-   NOT a kart game, and the name says so on purpose. It is a merry-go-round: a
-   ring of track where five friends go round together, nobody can lose, and the
-   little one gets there just by touching the screen.
-   A real racer needs a view from behind the kart, real steering, and the
-   possibility of being overtaken — and all three are forbidden by this game's
-   contract, so a real racer belongs in its own project, not here.
-   Owns G.save.kart.
-
-   THREE CONSTRUCTION DECISIONS DO ALL THE WORK. Everything else follows.
-
-   1. A KART IS (s, lat), NEVER (x, y). Position along the track and offset from
-      the centre line, and the drawing converts. This deletes free-body physics,
-      wall collision, swept tests, tunnelling, per-frame nearest-point search and
-      sub-stepping in one go — that is, the entire class of bug that shows up to a
-      small child as "my car is stuck", the most agitating outcome there is.
-      Driving off the track is not REPRESENTABLE.
-
-   2. NO LINE OF CODE SUBTRACTS SPEED. `spd = Math.max(spd, CRUISE)` after every
-      update. No brake, no penalty, no obstacle that slows you, no grass, no
-      wall. The puddle SPEEDS YOU UP. A whole category of failure has no way to
-      be expressed.
-
-   3. NO CAMERA. The whole oval fits on screen, so all five karts are always
-      visible. "I fell behind and can't see anyone" is closed by arithmetic
-      instead of by a device — and the device would itself be the diagnosis:
-      a zoom that widens, or an arrow that points at the leader, is a sign
-      saying YOU ARE LOSING.
-
-   And the corollary that took three tries to see: A VISIBLE HELP THAT ONLY
-   SWITCHES ON WHEN YOU ARE BEHIND IS A SIGN THAT SAYS YOU ARE BEHIND. So the
-   friends do not slow down for you. Each of them stops to eat blackberries on
-   its own offset timer; falling behind only nudges how LONG the stop lasts.
-
-   There is no position, no placing, no finishing order, and no number anywhere
-   except the fruit counter in the HUD. "Last" has no representation, so it
-   cannot be read. */
+/* Dino Giungla — "Il Girotondo dei Suoni" (scene: kart).
+   Four friends play a short sequence; the child repeats it by touching the
+   matching instruments. The game has no losing state and owns only G.save.kart.
+   All art is procedural so the scene stays offline and works without assets. */
 (function () {
   'use strict';
 
+  var G = window.G;
+  if (!G || !G.scene) return;
   var C = G.C, W = G.W, H = G.H;
-
-  /* --------------------------------------------------------------- track */
-  /* A stadium oval — two straights and two semicircles — computed analytically
-     rather than sampled from a spline. An ellipse was the obvious choice and is
-     wrong: its minimum radius of curvature would be b*b/a = 71px against a
-     half-width of 72, so the inner edge of the ribbon folds through itself and
-     the (s, lat) -> point map stops being injective. The kart would visibly
-     travel BACKWARDS while s increases, exactly at the corner the whole no-fail
-     promise rests on. A stadium's minimum radius is HB = 175. */
-  var CX = 640, CY = 445, HA = 450, HB = 175;
-  var LSTR = HA - HB;                   // 275, half the length of one straight
-  var ARC = Math.PI * HB;               // 549.78 per semicircle
-  var PLEN = 4 * LSTR + 2 * ARC;        // 2199.6
-  var HW = 72;                          // half width of the ribbon
-  var LAT_MAX = 40;                     // the drivable corridor, well inside HW
-
-  var S1 = 2 * LSTR;                    // end of the top straight
-  var S2 = S1 + ARC;                    // end of the right bend
-  var S3 = S2 + 2 * LSTR;               // end of the bottom straight
-
-  function wrapS(s) { s %= PLEN; return s < 0 ? s + PLEN : s; }
-  /* Signed shortest arc from a to b, in (-PLEN/2, PLEN/2]. */
-  function wrapDelta(a, b) {
-    var d = wrapS(b - a);
-    return d > PLEN / 2 ? d - PLEN : d;
-  }
-
-  /* Centre-line point, unit tangent, and inward normal at arc length s.
-     `lat` is positive INWARDS, which is what makes the inner line genuinely
-     shorter: the parallel curve at distance lat from a curve of curvature k has
-     length scaled by (1 - lat*k). */
-  var _p = { x: 0, y: 0, dx: 1, dy: 0, nx: 0, ny: 1, k: 0 };
-  function at(s) {
-    s = wrapS(s);
-    var a;
-    if (s < S1) {                                   // top straight, going right
-      _p.x = CX - LSTR + s; _p.y = CY - HB;
-      _p.dx = 1; _p.dy = 0; _p.k = 0;
-    } else if (s < S2) {                            // right bend, clockwise
-      a = -Math.PI / 2 + (s - S1) / HB;
-      _p.x = CX + LSTR + Math.cos(a) * HB;
-      _p.y = CY + Math.sin(a) * HB;
-      _p.dx = -Math.sin(a); _p.dy = Math.cos(a); _p.k = 1 / HB;
-    } else if (s < S3) {                            // bottom straight, going left
-      _p.x = CX + LSTR - (s - S2); _p.y = CY + HB;
-      _p.dx = -1; _p.dy = 0; _p.k = 0;
-    } else {                                        // left bend
-      a = Math.PI / 2 + (s - S3) / HB;
-      _p.x = CX - LSTR + Math.cos(a) * HB;
-      _p.y = CY + Math.sin(a) * HB;
-      _p.dx = -Math.sin(a); _p.dy = Math.cos(a); _p.k = 1 / HB;
-    }
-    _p.nx = -_p.dy; _p.ny = _p.dx;                  // rotate +90: points inward
-    return _p;
-  }
-  function px(s, lat) { var p = at(s); return p.x + p.nx * lat; }
-  function py(s, lat) { var p = at(s); return p.y + p.ny * lat; }
-
-  /* ------------------------------------------------------------- friends */
-  /* The same names that come to the parties in the Casetta. The table is
-     duplicated on purpose: modules talk only through G, and a shared table
-     would be a shared module. */
-  var CAST = [
-    { name: 'Pippi', color: '#ff6fae' },
-    { name: 'Bubu', color: '#4d80e4' },
-    { name: 'Momo', color: '#ffd75e' },
-    { name: 'Nina', color: '#38d9a9' }
+  var A = window.A;
+  var FRIENDS = [
+    { name: 'Tamburo', say: 'tamburo', color: C.berry, sfx: 'pop' },
+    { name: 'Campanella', say: 'campanella', color: C.sun, sfx: 'chime' },
+    { name: 'Maracas', say: 'maracas', color: C.mint, sfx: 'whoosh' },
+    { name: 'Flauto', say: 'flauto', color: C.blueberry, sfx: 'good' }
   ];
-
-  var LAPS_1 = 3, LAPS_2 = 5;
-  var CRUISE_1 = 250, BOOST_1 = 340;
-  var CRUISE_2 = 300, BOOST_2 = 430;
-  var LEAD_MAX = 300, TRAIL_MAX = 340;   // the pack lives inside 640px of arc
+  var ROUND_GOAL = 4;
+  var S = {
+    phase: 'ascolta', t: 0, round: 0, sequence: [], playAt: 0, playIndex: 0,
+    inputIndex: 0, active: -1, mistake: 0, idle: 0, songT: 0, banked: 0
+  };
+  var lookBuffers = [{}, {}, {}, {}];
 
   function big() { return G.level === 2; }
-  function laps() { return big() ? LAPS_2 : LAPS_1; }
-  function cruise() { return big() ? CRUISE_2 : CRUISE_1; }
-  function boost() { return big() ? BOOST_2 : BOOST_1; }
-
-  /* ------------------------------------------------------------ save branch */
   function br() {
-    var g = G.save.kart;
-    if (!g || typeof g !== 'object' || Array.isArray(g)) g = G.save.kart = {};
-    if (typeof g.done !== 'number' || !isFinite(g.done) || g.done < 0) g.done = 0;
-    if (typeof g.best !== 'number' || !isFinite(g.best) || g.best <= 0) g.best = 0;
-    return g;
+    if (!G.save.kart || typeof G.save.kart !== 'object' || Array.isArray(G.save.kart)) G.save.kart = {};
+    var k = G.save.kart;
+    k.done ??= 0; k.best ??= 0;
+    if (typeof k.done !== 'number' || !isFinite(k.done) || k.done < 0) k.done = 0;
+    if (typeof k.best !== 'number' || !isFinite(k.best) || k.best < 0) k.best = 0;
+    k.done = Math.floor(k.done); k.best = Math.floor(k.best);
+    return k;
   }
-
-  /* ---------------------------------------------------------------- state */
-  var S = {
-    phase: 'via',        // 'via' (lights) | 'gara' | 'festa'
-    t: 0,
-    thr: 0, gasHeld: false, gasLatch: 0,
-    downX: null, downLat: 0, steered: 0,
-    callLat: null,
-    lapT: 0, lapFrames: 0, bestShown: 0,
-    banked: 0,
-    shake: 0
-  };
-  var karts = [];
-  var items = [];
-  var bg = null, bgOK = false;
-
-  function me() { return karts[0]; }
-
-  /* ------------------------------------------------------------ the items */
-  /* Nothing abstract, no inventory, no slot, nothing to "use": everything works
-     on contact and pays out inside 300ms. */
-  function buildItems() {
-    items.length = 0;
-    var n = laps() > 0 ? 1 : 1, i, k;
-    var fruitLat = big() ? [34, -34, 44, -44] : [0, 18, -18, 0];
-    var kinds = ['fragola', 'banana', 'uva', 'mela', 'melone'];
-    for (i = 0; i < 8; i++) {                        // fruit around the lap
-      items.push({
-        kind: 'fruit', s: (i + 0.5) * PLEN / 8, lat: fruitLat[i % fruitLat.length],
-        fruit: kinds[i % kinds.length], taken: 0, glow: 0
-      });
-    }
-    for (i = 0; i < 3; i++) {                        // wind leaves
-      /* Level 1: exactly on the automatic line, so they cannot be missed — he
-         gets a present of speed and believes he took it. Level 2: on the INSIDE
-         of the bends, so they only pay if he actually steers. */
-      k = big() ? (i === 0 ? S1 + ARC * 0.5 : i === 1 ? S3 + ARC * 0.5 : LSTR)
-        : (i + 0.3) * PLEN / 3;
-      items.push({ kind: 'wind', s: k, lat: big() ? 30 : 0, taken: 0, glow: 0 });
-    }
-    for (i = 0; i < 2; i++) {                        // puddles: they SPEED YOU UP
-      items.push({ kind: 'pool', s: (i + 0.15) * PLEN / 2, lat: big() ? -20 : 0, taken: 0, glow: 0 });
-    }
-    var hats = Array.isArray(G.save.hats) ? G.save.hats : [];
-    if (hats.length) {                               // one of his own hats, flying
-      items.push({ kind: 'hat', s: PLEN * 0.62, lat: 0, taken: 0, glow: 0, hat: hats[hats.length - 1] });
-    }
-    void n;
-  }
-
-  /* --------------------------------------------------------------- start */
-  function reset() {
-    var i, k;
-    karts.length = 0;
-    karts.push({
-      me: true, s: 0, lat: 0, dist: 0, spd: cruise(),
-      color: (G.account && G.account.color) || C.dino, name: '', wob: 0,
-      stop: 0, next: 0, pace: 1
-    });
-    for (i = 0; i < CAST.length; i++) {
-      k = CAST[i];
-      karts.push({
-        me: false, s: -60 - i * 46, lat: (i % 2 ? 1 : -1) * (14 + i * 5), dist: -60 - i * 46,
-        spd: cruise(), color: k.color, name: k.name, wob: i * 1.3,
-        /* Their stops are on their OWN offset timers. Tying them to the gap
-           would make the help visible, and a visible help is a sign. */
-        stop: 0, next: 5 + i * 3.5, pace: big() ? (0.97 + i * 0.01) : 0.98
-      });
-    }
-    buildItems();
-    S.phase = 'via'; S.t = 0; S.thr = 0; S.gasHeld = false; S.gasLatch = 0;
-    S.downX = null; S.steered = 0; S.callLat = null;
-    /* lapDone MUST be reset here: it is the high-water mark of completed laps,
-       so leaving it behind means the second race of a session banks nothing. */
-    S.lapDone = 0;
-    S.lapT = 0; S.lapFrames = 0; S.bestShown = 0; S.banked = 0; S.shake = 0;
-    S.wearHat = null;
-  }
-
-  /* Fruit is banked EVERY LAP, not at the finish: leaving half way through must
-     never throw anything away, so the home button is not a trapdoor. */
   function bank(n, x, y) {
-    if (n <= 0) return;
-    S.banked += n;
-    G.addFruits(n, x, y);
+    if (n > 0) { S.banked += n; G.addFruits(n, x, y); }
+  }
+  function sequenceLength() {
+    return big() ? Math.min(6, 3 + S.round) : Math.min(3, 1 + S.round);
+  }
+  function nextRound() {
+    var i, v, last = -1, len = sequenceLength();
+    S.sequence.length = 0;
+    for (i = 0; i < len; i++) {
+      v = G.rndi(0, FRIENDS.length - 1);
+      if (v === last) v = (v + 1) % FRIENDS.length;
+      S.sequence.push(v); last = v;
+    }
+    S.phase = 'play'; S.t = 0; S.playAt = .55; S.playIndex = 0;
+    S.inputIndex = 0; S.active = -1; S.mistake = 0; S.idle = 0;
+    G.say(big() ? 'Ascolta tutta la sequenza!' : 'Ascolta e ripeti!');
+  }
+  function reset() {
+    S.phase = 'ascolta'; S.t = 0; S.round = 0; S.sequence.length = 0;
+    S.playIndex = 0; S.inputIndex = 0; S.active = -1; S.mistake = 0;
+    S.idle = 0; S.songT = 0; S.banked = 0;
+    nextRound();
+  }
+  function playNote(i) {
+    var f = FRIENDS[i];
+    S.active = i; S.t = 0;
+    G.sfx(f.sfx); G.say(f.say);
+    G.fx.ring(180 + i * 285, 355, f.color, 68);
+  }
+  function completeRound() {
+    var k = br(), reward = big() ? 7 : 5;
+    k.done++; k.best = Math.max(k.best, S.sequence.length); G.saveNow();
+    bank(reward, 640, 330); G.addStars(1, 640, 285);
+    G.fx.burst(640, 340, { color: C.sun, count: 12, speed: 190, size: 7, life: .65, gravity: 170 });
+    S.round++;
+    if (S.round >= ROUND_GOAL) {
+      S.phase = 'festa'; S.songT = 0; G.sfx('win'); G.fx.confetti();
+      G.say('Avete fatto una canzone! Balliamo!');
+    } else {
+      S.phase = 'pausa'; S.t = 0; G.sfx('good');
+      G.say(G.pick(['Bravissimi!', 'Che bella musica!', 'Evviva gli amici!']));
+    }
+  }
+  function wrong() {
+    S.phase = 'buffo'; S.t = 0; S.mistake = .95; S.idle = 0;
+    G.sfx('pop');
+    G.say(G.pick(['Ops, era un altro strumento!', 'Quasi! Riproviamo!', 'Che suono buffo!']));
+  }
+  function choose(i) {
+    if (S.phase !== 'input' && S.phase !== 'smallInput') return;
+    S.idle = 0;
+    if (S.sequence[S.inputIndex] !== i) { wrong(); return; }
+    S.active = i; S.inputIndex++; G.sfx(FRIENDS[i].sfx);
+    G.fx.ring(180 + i * 285, 355, FRIENDS[i].color, 60);
+    if (S.inputIndex >= S.sequence.length) completeRound();
+    else if (!big()) { S.phase = 'smallNext'; S.t = 0; }
+  }
+  function autoPlayExpected() {
+    if (S.phase === 'input' || S.phase === 'smallInput') choose(S.sequence[S.inputIndex]);
+  }
+  G.soundState = function () {
+    return { phase: S.phase, expected: S.sequence[S.inputIndex], round: S.round, length: S.sequence.length };
+  };
+  G.soundChoose = choose;                 // deterministic headless tests
+
+  function iconDrum(c, x, y, s) {
+    c.save(); c.fillStyle = '#fff6e0'; c.strokeStyle = C.ink; c.lineWidth = Math.max(3, s * .08);
+    c.beginPath(); c.ellipse(x, y - s * .10, s * .36, s * .17, 0, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = C.berry; c.beginPath(); c.ellipse(x, y + s * .10, s * .34, s * .27, 0, 0, 7); c.fill(); c.stroke();
+    c.strokeStyle = C.cream; c.lineWidth = s * .07; c.beginPath(); c.moveTo(x - s * .20, y - s * .28); c.lineTo(x - s * .35, y - s * .54); c.moveTo(x + s * .20, y - s * .28); c.lineTo(x + s * .35, y - s * .54); c.stroke(); c.restore();
+  }
+  function iconBell(c, x, y, s) {
+    c.save(); c.fillStyle = C.sun; c.strokeStyle = C.ink; c.lineWidth = Math.max(3, s * .08);
+    c.beginPath(); c.moveTo(x - s * .34, y + s * .22); c.quadraticCurveTo(x - s * .30, y - s * .30, x, y - s * .38); c.quadraticCurveTo(x + s * .30, y - s * .30, x + s * .34, y + s * .22); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.arc(x, y + s * .28, s * .10, 0, 7); c.fill(); c.restore();
+  }
+  function iconMaracas(c, x, y, s) {
+    c.save(); c.fillStyle = C.mint; c.strokeStyle = C.ink; c.lineWidth = Math.max(3, s * .08);
+    c.save(); c.translate(x - s * .18, y - s * .06); c.rotate(-.45); c.beginPath(); c.ellipse(0, -s * .20, s * .21, s * .28, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = C.cream; c.fillRect(-s * .06, s * .04, s * .12, s * .35); c.restore();
+    c.save(); c.translate(x + s * .18, y - s * .06); c.rotate(.45); c.beginPath(); c.ellipse(0, -s * .20, s * .21, s * .28, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = C.cream; c.fillRect(-s * .06, s * .04, s * .12, s * .35); c.restore(); c.restore();
+  }
+  function iconFlute(c, x, y, s) {
+    c.save(); c.strokeStyle = C.blueberry; c.lineWidth = s * .18; c.lineCap = 'round'; c.beginPath(); c.moveTo(x - s * .38, y + s * .25); c.lineTo(x + s * .38, y - s * .25); c.stroke(); c.strokeStyle = C.cream; c.lineWidth = s * .07; for (var i = -1; i < 2; i++) { c.beginPath(); c.arc(x + i * s * .17, y - i * s * .11, s * .045, 0, 7); c.stroke(); } c.restore();
+  }
+  var ICONS = [iconDrum, iconBell, iconMaracas, iconFlute];
+
+  function drawFriend(c, i) {
+    var x = 180 + i * 285, f = FRIENDS[i], pose = S.phase === 'festa' ? 'happy' : (S.active === i ? 'happy' : 'idle');
+    if (A && A.dino) {
+      var gear = (typeof G.look === 'function') ? G.look(G.save, lookBuffers[i]) : null;
+      A.dino(c, x, 320, 112, { facing: 1, pose: pose, t: G.t + i * .2, color: f.color, gear: gear });
+    }
+    c.save(); c.globalAlpha = S.active === i ? .95 : .65; c.fillStyle = f.color; c.beginPath(); c.ellipse(x, 370, 112, 30, 0, 0, 7); c.fill(); c.restore();
+    if (S.active === i) { c.save(); c.strokeStyle = C.sun; c.lineWidth = 8; c.beginPath(); c.arc(x, 355, 84 + Math.sin(G.t * 8) * 6, 0, 7); c.stroke(); c.restore(); }
+  }
+  function drawButtons(c) {
+    var y = 472, i;
+    for (i = 0; i < FRIENDS.length; i++) {
+      G.ui.button({ x: 70 + i * 285, y: y, w: 220, h: 148, r: 28, color: FRIENDS[i].color,
+        label: '', icon: ICONS[i], iconSize: 70,
+        onTap: (function (k) { return function () { choose(k); }; })(i) });
+      G.text(FRIENDS[i].name, 180 + i * 285, 596, {
+        ctx: c, size: 23, color: C.cream, stroke: 'rgba(43,29,18,.72)', strokeWidth: 6
+      });
+    }
+  }
+  function drawParty(c) {
+    var i;
+    for (i = 0; i < 12; i++) {
+      var x = 90 + ((i * 173) % 1100), y = 220 + ((i * 71) % 260);
+      c.save(); c.globalAlpha = .35; c.strokeStyle = FRIENDS[i % 4].color; c.lineWidth = 5; c.beginPath(); c.arc(x, y, 22 + Math.sin(S.songT * 7 + i) * 8, 0, 7); c.stroke(); c.restore();
+    }
+    G.text('Bravissimi!', 640, 460, { size: 58, color: C.sun, stroke: C.ink, strokeWidth: 11 });
+    G.ui.button({ x: 310, y: 510, w: 290, h: 112, r: 28, label: 'Ancora!', color: C.leaf, fontSize: 38, onTap: function () { reset(); } });
+    G.ui.button({ x: 680, y: 510, w: 290, h: 112, r: 28, label: 'Giungla', color: C.tangerine, fontSize: 34, onTap: function () { G.home(); } });
+  }
+  function drawScene(c) {
+    if (A && A.jungle) A.jungle(c, G.t, { dim: .16 });
+    else { c.fillStyle = C.sky; c.fillRect(0, 0, W, H); }
+    c.save(); c.fillStyle = 'rgba(30,90,50,.35)'; c.beginPath(); c.ellipse(640, 395, 560, 150, 0, 0, 7); c.fill(); c.restore();
+    G.text('Girotondo dei Suoni', 640, 132, { size: 42, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9 });
+    var instruction = S.phase === 'festa' ? 'La nostra canzone!' : (S.phase === 'input' || S.phase === 'smallInput' ? 'Tocca gli strumenti nello stesso ordine' : 'Ascolta...');
+    G.text(instruction, 640, 184, { size: 25, color: C.cream, stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
+    for (var i = 0; i < FRIENDS.length; i++) drawFriend(c, i);
+    if (S.phase === 'festa') drawParty(c); else drawButtons(c);
+    if (S.phase === 'buffo') G.text('Riproviamo insieme!', 640, 690, { size: 28, color: C.sun, stroke: C.ink, strokeWidth: 6 });
   }
 
-  /* ================================================================ SCENE */
   G.scene('kart', {
     enter: function () {
-      br();
-      reset();
-      bgOK = false;
-      setTimeout(function () {
-        if (G.current !== 'kart') return;
-        G.say(G.pick(['Pronti, partenza... via!', 'Si corre!', 'Andiamo a fare un giro!']));
-      }, 400);
+      br(); reset();
+      if (!G.save.seen || typeof G.save.seen !== 'object') G.save.seen = {};
+      var first = !G.save.seen.kart; G.save.seen.kart = true; G.saveNow();
+      if (first) G.say('Ascolta gli amici e ripeti la musica!');
     },
-
-    exit: function () { S.phase = 'festa'; },
-
+    exit: function () { S.active = -1; },
     update: function (dt) {
-      var i, k, p, it, d;
-      S.t += dt;
-      if (S.shake > 0) S.shake = Math.max(0, S.shake - dt * 3);
-
-      /* Safety net: window.blur zeroes the core's pointer.down but does NOT call
-         the scene's onUp, so the gas could stay held down for ever. */
-      if (!G.pointer || !G.pointer.down) { S.gasHeld = false; S.downX = null; }
-      S.gasLatch = Math.max(0, S.gasLatch - dt);
-
-      if (S.phase === 'via') {
-        if (S.t > 3) { S.phase = 'gara'; S.t = 0; G.sfx('win'); }
-        return;
-      }
-      if (S.phase === 'festa') { S.t += 0; return; }
-
-      /* ---- throttle. A three-year-old hammers, so a tap has to be worth as
-         much as a held finger: one 100ms tap latches 0.85s of full gas. No
-         input pattern produces less feedback than another. */
-      var want = (S.gasHeld || S.gasLatch > 0) ? 1 : 0;
-      S.thr += (want - S.thr) * Math.min(1, dt * 7);
-
-      var mek = me();
-      var target = cruise() + S.thr * (boost() - cruise());
-      mek.spd += G.clamp(target - mek.spd, -300 * dt, 300 * dt);
-      mek.spd = Math.max(mek.spd, cruise());          // NOTHING subtracts speed
-
-      /* ---- steering */
-      var wantLat = 0, assist = 1;
-      if (big()) {
-        wantLat = G.clamp(S.downLat, -LAT_MAX, LAT_MAX);
-        assist = 1 - 0.78 * G.clamp(S.steered, 0, 1);  // 100% -> 22% as he really drives
-      } else if (S.callLat !== null) {
-        wantLat = G.clamp(S.callLat, -LAT_MAX, LAT_MAX);
-      }
-      var autoLat = autoLine(mek.s);
-      var aim = wantLat * (1 - assist) + autoLat * assist;
-      if (!big() || S.callLat !== null) aim = wantLat || autoLat;
-      mek.lat += G.clamp(aim - mek.lat, -170 * dt, 170 * dt);
-      mek.lat = G.clamp(mek.lat, -LAT_MAX, LAT_MAX);
-
-      advance(mek, dt);
-
-      /* ---- the friends */
-      for (i = 1; i < karts.length; i++) {
-        k = karts[i];
-        k.next -= dt;
-        if (k.stop > 0) {
-          k.stop -= dt;
-          k.spd += G.clamp(cruise() * 0.55 - k.spd, -300 * dt, 300 * dt);
-        } else {
-          if (k.next <= 0) {
-            k.next = 7 + Math.random() * 6;
-            /* The gap only nudges HOW LONG, never WHETHER. */
-            d = wrapDelta(k.dist, mek.dist);
-            k.stop = 1.1 + G.clamp(d / 900, -0.4, 0.4);
+      S.songT += dt; S.t += dt;
+      if (S.active >= 0 && S.t > .42) S.active = -1;
+      if (S.phase === 'play') {
+        if (S.t >= S.playAt) {
+          if (S.playIndex < S.sequence.length) {
+            playNote(S.sequence[S.playIndex++]);
+            if (big()) S.playAt = .76;
+            else S.phase = 'smallInput';
+          } else {
+            S.phase = big() ? 'input' : 'pausaInput'; S.t = 0; S.idle = 0;
+            if (big()) G.say('Ora tocca a te!');
           }
-          k.spd += G.clamp(cruise() * k.pace - k.spd, -300 * dt, 300 * dt);
         }
-        k.spd = Math.max(k.spd, cruise() * 0.5);
-
-        /* The pack stays inside 640px of arc, so lapping is arithmetically
-           impossible in either direction. */
-        d = wrapDelta(mek.dist, k.dist);
-        if (d > LEAD_MAX) k.spd = Math.min(k.spd, mek.spd * 0.92);
-        if (d < -TRAIL_MAX) k.spd = Math.max(k.spd, mek.spd * 1.04);
-
-        k.lat += Math.sin(S.t * 0.7 + k.wob) * 9 * dt;
-        k.lat = G.clamp(k.lat, -LAT_MAX, LAT_MAX);
-
-        /* Courtesy: they make room, so he is never boxed in. And the push is
-           ASYMMETRIC — only the rival moves. "A friend made me miss the banana"
-           is the worst kind of failure, because it is attributed to somebody
-           else. Nobody's speed is ever touched. */
-        if (Math.abs(wrapDelta(mek.s, k.s)) < 70 && Math.abs(k.lat - mek.lat) < 34) {
-          k.lat += (k.lat >= mek.lat ? 1 : -1) * 46 * dt;
-          k.lat = G.clamp(k.lat, -LAT_MAX, LAT_MAX);
+      } else if (S.phase === 'smallNext') {
+        if (S.t > .32) { S.phase = 'play'; S.t = 0; S.playAt = .12; }
+      } else if (S.phase === 'smallInput') {
+        S.idle += dt; if (S.idle > 3) autoPlayExpected();
+      } else if (S.phase === 'pausaInput') {
+        S.phase = 'input'; S.t = 0; S.idle = 0; G.say('Adesso ripeti la sequenza!');
+      } else if (S.phase === 'input') {
+        S.idle += dt; if (S.idle > 5) autoPlayExpected();
+      } else if (S.phase === 'buffo') {
+        if (S.t > .9) {
+          S.t = 0; S.playIndex = 0; S.inputIndex = 0; S.idle = 0;
+          if (big()) { S.phase = 'play'; S.playAt = .1; } else { S.phase = 'smallInput'; playNote(S.sequence[0]); }
         }
-        advance(k, dt);
-      }
-
-      /* ---- pick-ups */
-      for (i = 0; i < items.length; i++) {
-        it = items[i];
-        if (it.glow > 0) it.glow = Math.max(0, it.glow - dt * 2);
-        if (it.taken > 0) { it.taken -= dt; continue; }
-        if (Math.abs(wrapDelta(mek.s, it.s)) > 26) continue;
-        if (Math.abs(it.lat - mek.lat) > (big() ? 34 : 60)) continue;
-        take(it, mek);
-      }
-
-      /* ---- laps */
-      var lapNow = Math.floor(mek.dist / PLEN);
-      S.lapT += dt; S.lapFrames++;
-      if (lapNow > S.lapDone) {
-        S.lapDone = lapNow;
-        onLap();
-      }
-      if (mek.dist >= laps() * PLEN) finish();
-    },
-
-    onDown: function (p) {
-      if (p.y < 112) return;                       // HUD band and its slack
-      S.gasHeld = true; S.gasLatch = 0.85;
-      S.downX = p.x; S.downLat = me() ? me().lat : 0;
-      if (S.phase !== 'gara') return;
-
-      if (!big()) {
-        /* Tap-to-call. The verb a three-year-old already knows from four other
-           scenes: touch the thing you want. Never a dead tap. */
-        var best = null, bd = 220, i, it, d, dx, dy;
-        for (i = 0; i < items.length; i++) {
-          it = items[i];
-          if (it.taken > 0) continue;
-          d = wrapDelta(me().s, it.s);
-          if (d < 10 || d > 520) continue;         // only ahead: never look back
-          dx = px(it.s, it.lat) - p.x; dy = py(it.s, it.lat) - p.y;
-          var dd = Math.hypot(dx, dy);
-          if (dd < bd) { bd = dd; best = it; }
-        }
-        if (best) { best.glow = 1; S.callLat = best.lat; G.sfx('pop'); }
-        else G.fx.ring(p.x, p.y, 'rgba(255,255,255,.6)', 40);
+      } else if (S.phase === 'pausa') {
+        if (S.t > 1.1) nextRound();
       }
     },
-
-    onMove: function (p) {
-      if (!big() || S.downX === null) return;
-      /* Relative drag, never absolute: a finger that lands anywhere is not a
-         steering command by itself. */
-      var dx = p.x - S.downX;
-      S.downLat = G.clamp(S.downLat + dx * 0.10, -LAT_MAX, LAT_MAX);
-      S.downX = p.x;
-      S.steered = Math.min(1, S.steered + Math.abs(dx) / 240);
-    },
-
-    onUp: function () { S.gasHeld = false; S.downX = null; },
-
-    draw: function (c) { drawAll(c); }
+    draw: function (c) { drawScene(c); },
+    onDown: function () {}, onMove: function () {}, onUp: function () {}
   });
-
-  S.lapDone = 0;
-
-  /* --------------------------------------------------------------- motion */
-  function advance(k, dt) {
-    var p = at(k.s);
-    /* The exact length of the parallel path at distance lat from a curve of
-       curvature k: the inner line is genuinely shorter, and there is no
-       coefficient to tune. Off at level 1, where he is never punished for
-       being off the racing line. */
-    var scale = big() ? G.clamp(1 / (1 - k.lat * p.k), 0.86, 1.16) : 1;
-    var ds = k.spd * dt * scale;
-    k.s = wrapS(k.s + ds);
-    k.dist += ds;
-  }
-
-  /* The line the game drives for you: hug the inside through the bends. */
-  function autoLine(s) {
-    var p = at(s);
-    return p.k > 0 ? 22 : 0;
-  }
-
-  function take(it, k) {
-    var x = px(it.s, it.lat), y = py(it.s, it.lat);
-    it.taken = 3.2;
-    if (it.kind === 'fruit') {
-      bank(big() ? 3 : 2, x, y);
-      G.sfx('coin');
-      G.fx.burst(x, y, { color: C.sun, count: 8, speed: 180, life: 0.5 });
-      if (!big()) S.callLat = null;
-    } else if (it.kind === 'wind') {
-      k.spd = Math.min(boost() * 1.25, k.spd + 90);
-      G.sfx('whoosh');
-      G.fx.burst(x, y, { color: C.leafLight, count: 10, speed: 240, life: 0.5 });
-    } else if (it.kind === 'pool') {
-      k.spd = Math.min(boost() * 1.3, k.spd + 120);
-      G.sfx('chime');
-      G.fx.ring(x, y, C.water);
-    } else if (it.kind === 'hat') {
-      S.wearHat = it.hat;
-      G.sfx('good');
-      G.fx.confetti();
-      G.say('Il tuo cappello!');
-    }
-  }
-
-  function onLap() {
-    var mek = me();
-    G.sfx('chime');
-    bank(big() ? 6 : 4, mek.x || 640, 240);
-    if (big()) {
-      var g = br();
-      /* Never Date.now: below 20fps the core clamps dt to 0.05 and physics and
-         wall clock would diverge. And a lap is rejected if the frame rate was
-         so poor that a slow tablet would be rewarded. */
-      if (S.lapFrames > 0 && S.lapT / S.lapFrames <= 0.022) {
-        if (!g.best || S.lapT < g.best) {
-          g.best = S.lapT; G.saveNow();
-          S.bestShown = 2.4;
-          G.fx.text(640, 300, 'Giro record!', C.sun, 46);
-        }
-      }
-    }
-    S.lapT = 0; S.lapFrames = 0;
-    items.forEach(function (it) { if (it.kind !== 'hat') it.taken = 0; });
-  }
-
-  function finish() {
-    var g = br();
-    g.done++;
-    G.saveNow();
-    S.phase = 'festa'; S.t = 0;
-    G.sfx('win'); G.fx.confetti();
-    G.addStars(1, 640, 300);
-    G.say(G.pick(['Che bel giro!', 'Bravissimo!', 'Evviva!']));
-  }
-
-  /* ----------------------------------------------------------------- draw */
-  /* The backdrop is baked once into an offscreen canvas and blitted with a
-     single drawImage. Only possible because there is no camera, and it is what
-     keeps this scene at about a third of the overworld's raster load. */
-  function bake() {
-    var cv, c;
-    try { cv = document.createElement('canvas'); } catch (e) { return false; }
-    cv.width = 1280; cv.height = 720;
-    c = cv.getContext('2d');
-    if (!c) return false;
-
-    c.fillStyle = '#7fbf5a'; c.fillRect(0, 0, 1280, 720);
-    if (A.jungle) { try { A.jungle(c, 0, { dim: 0.25 }); } catch (e) { /* keep the grass */ } }
-
-    ribbon(c, HW + 10, '#5a4326');                 // shoulder
-    ribbon(c, HW, '#c8a06a');                      // the track itself
-    kerbs(c);
-    c.save();                                       // the inner meadow pond
-    c.globalAlpha = 0.55; c.fillStyle = C.water;
-    c.beginPath(); c.ellipse(CX, 443, 132, 78, 0, 0, 7); c.fill();
-    c.restore();
-    bg = cv;
-    return true;
-  }
-
-  function ribbon(c, w, col) {
-    var i, s, p, n = 160;
-    c.beginPath();
-    for (i = 0; i <= n; i++) { s = i / n * PLEN; p = at(s); if (i) c.lineTo(p.x + p.nx * -w, p.y + p.ny * -w); else c.moveTo(p.x + p.nx * -w, p.y + p.ny * -w); }
-    for (i = n; i >= 0; i--) { s = i / n * PLEN; p = at(s); c.lineTo(p.x + p.nx * w, p.y + p.ny * w); }
-    c.closePath();
-    c.fillStyle = col; c.fill();
-  }
-
-  function kerbs(c) {
-    var i, s, p, k = 44;
-    for (i = 0; i < k; i++) {
-      s = i / k * PLEN;
-      p = at(s);
-      c.fillStyle = i % 2 ? '#e8536b' : '#fff6e0';
-      [-1, 1].forEach(function (side) {
-        c.save();
-        c.translate(p.x + p.nx * side * (HW - 5), p.y + p.ny * side * (HW - 5));
-        c.rotate(Math.atan2(p.dy, p.dx));
-        c.fillRect(-PLEN / k / 2, -6, PLEN / k, 12);
-        c.restore();
-      });
-    }
-  }
-
-  function drawAll(c) {
-    var i;
-    if (!bgOK) { bgOK = true; if (!bake()) bg = null; }
-    if (bg) { try { c.drawImage(bg, 0, 0); } catch (e) { bg = null; } }
-    if (!bg) { c.fillStyle = '#7fbf5a'; c.fillRect(0, 0, W, H); ribbon(c, HW, '#c8a06a'); }
-
-    drawArch(c);
-    for (i = 0; i < items.length; i++) drawItem(c, items[i]);
-
-    /* Depth order: whoever is lower on screen is nearer. */
-    var order = karts.slice().sort(function (a, b) { return py(a.s, a.lat) - py(b.s, b.lat); });
-    for (i = 0; i < order.length; i++) drawKart(c, order[i]);
-
-    drawPedal(c);
-    if (S.phase === 'via') drawLights(c);
-    if (S.phase === 'festa') drawFinish(c);
-    if (S.bestShown > 0) S.bestShown = Math.max(0, S.bestShown - G.dt);
-  }
-
-  /* The lap counter is three big fruits hanging from the start arch. One drops
-     each lap, with a chime, and flies away. Cause and effect in one glance —
-     no bar, no tally, no text. */
-  function drawArch(c) {
-    var x = CX - LSTR, y = CY - HB;
-    var n = laps(), doneL = Math.min(n, S.lapDone), i;
-    c.save();
-    c.strokeStyle = C.bark; c.lineWidth = 16; c.lineCap = 'round';
-    c.beginPath();
-    c.moveTo(x - HW - 12, y + 4); c.lineTo(x - HW - 12, y - 92);
-    c.moveTo(x + HW + 12, y + 4); c.lineTo(x + HW + 12, y - 92);
-    c.stroke();
-    c.strokeStyle = C.barkDark; c.lineWidth = 14;
-    c.beginPath(); c.moveTo(x - HW - 20, y - 92); c.lineTo(x + HW + 20, y - 92); c.stroke();
-    c.restore();
-    for (i = 0; i < n; i++) {
-      if (i < doneL) continue;
-      var fx = x - HW + 18 + i * ((HW * 2 - 36) / Math.max(1, n - 1 || 1));
-      if (n === 1) fx = x;
-      c.save();
-      c.strokeStyle = 'rgba(60,40,20,.6)'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(fx, y - 92); c.lineTo(fx, y - 66); c.stroke();
-      c.restore();
-      if (A.fruit) A.fruit(c, fx, y - 52, 20, ['fragola', 'mela', 'uva', 'banana', 'melone'][i % 5]);
-    }
-  }
-
-  function drawItem(c, it) {
-    if (it.taken > 0) return;
-    var x = px(it.s, it.lat), y = py(it.s, it.lat);
-    var g = 1 + it.glow * 0.6;
-    var bob = Math.sin(S.t * 3 + it.s) * 4;
-    c.save();
-    c.translate(x, y + bob);
-    c.scale(g, g);
-    if (it.kind === 'fruit') {
-      if (A.fruit) A.fruit(c, 0, 0, 20, it.fruit);
-    } else if (it.kind === 'wind') {
-      c.fillStyle = C.leafLight;
-      c.beginPath();
-      c.ellipse(0, 0, 22, 12, Math.sin(S.t * 4) * 0.4, 0, 7);
-      c.fill();
-      c.strokeStyle = C.leafDark; c.lineWidth = 3; c.stroke();
-    } else if (it.kind === 'pool') {
-      c.globalAlpha = 0.7; c.fillStyle = C.water;
-      c.beginPath(); c.ellipse(0, 0, 34, 15, 0, 0, 7); c.fill();
-      c.globalAlpha = 0.5; c.strokeStyle = '#fff'; c.lineWidth = 3;
-      c.beginPath(); c.ellipse(0, 0, 22, 9, 0, 0, 7); c.stroke();
-    } else if (it.kind === 'hat' && A.hat) {
-      A.hat(c, 0, 0, 54, it.hat);
-    }
-    c.restore();
-    if (it.glow > 0) {
-      c.save(); c.globalAlpha = it.glow * 0.7;
-      c.strokeStyle = C.sun; c.lineWidth = 5;
-      c.beginPath(); c.arc(x, y + bob, 34, 0, 7); c.stroke();
-      c.restore();
-    }
-  }
-
-  /* An egg shell with wooden wheels, seen from above. Only the shell rotates:
-     A.dino is drawn in profile and anchored at the feet, so turning it through
-     360 degrees would mean drawing the dino from eight angles — by a distance
-     the most expensive art this project has ever been asked for. The dino stays
-     upright inside a shell that turns, and reads perfectly. */
-  function drawKart(c, k) {
-    var p = at(k.s);
-    var x = p.x + p.nx * k.lat, y = p.y + p.ny * k.lat;
-    var ang = Math.atan2(p.dy, p.dx);
-    var sc = k.me ? 1.22 : 1;
-    var wob = Math.sin(S.t * 8 + k.wob) * 0.05;
-
-    c.save();
-    c.globalAlpha = 0.22; c.fillStyle = k.me ? k.color : '#20140a';
-    c.beginPath(); c.ellipse(x, y + 10, 40 * sc, 18 * sc, 0, 0, 7); c.fill();
-    c.restore();
-
-    c.save();
-    c.translate(x, y);
-    c.rotate(ang + wob);
-    c.scale(sc, sc);
-    c.fillStyle = C.barkDark;                        // wheels
-    [[-20, -22], [-20, 22], [20, -22], [20, 22]].forEach(function (o) {
-      c.beginPath(); c.ellipse(o[0], o[1], 12, 7, 0, 0, 7); c.fill();
-    });
-    if (A.egg) A.egg(c, 0, 0, 62, { color: k.color });
-    else {
-      c.fillStyle = k.color;
-      c.beginPath(); c.ellipse(0, 0, 30, 22, 0, 0, 7); c.fill();
-    }
-    c.restore();
-
-    /* The dino sits upright in the shell, never rotated. */
-    if (A.dino) {
-      var o = { facing: p.dx >= 0 ? 1 : -1, pose: 'happy', t: G.t, color: k.color };
-      if (!k.me) o.hat = null;                       // a friend, not the player
-      A.dino(c, x, y + 6 * sc, 74 * sc, o);
-    }
-
-    if (k.me) {                                      // the marker that never turns off
-      var fy = y - 74 * sc - 16 + Math.sin(S.t * 3) * 5;
-      c.save();
-      c.fillStyle = C.sun; c.strokeStyle = C.ink; c.lineWidth = 3;
-      c.beginPath();
-      c.moveTo(x, fy + 16); c.lineTo(x - 14, fy - 8); c.lineTo(x + 14, fy - 8);
-      c.closePath(); c.fill(); c.stroke();
-      c.restore();
-    } else if (k.stop > 0) {
-      G.text('mmm!', x, y - 62, {
-        ctx: c, size: 22, color: C.cream, stroke: 'rgba(43,29,18,.7)', strokeWidth: 6
-      });
-    }
-  }
-
-  /* An affordance, not a target: the whole screen below the HUD is the pedal.
-     Deliberately NOT a G.ui button with hold:true — that flag is wired to the
-     parents' gate in the core, and a pedal registered that way would open the
-     grown-up menu after 1.4 seconds of accelerating. */
-  function drawPedal(c) {
-    var down = S.thr > 0.35;
-    var y = 443 + (down ? 8 : 0);
-    c.save();
-    c.globalAlpha = 0.9;
-    c.fillStyle = down ? C.leafLight : C.leaf;
-    c.beginPath(); c.ellipse(CX, y, 104, 62, 0, 0, 7); c.fill();
-    c.strokeStyle = C.leafDark; c.lineWidth = 6; c.stroke();
-    c.globalAlpha = 0.30 + S.thr * 0.55;
-    c.fillStyle = C.sun;
-    c.beginPath(); c.ellipse(CX, y, 88 * (0.4 + S.thr * 0.6), 50 * (0.4 + S.thr * 0.6), 0, 0, 7); c.fill();
-    c.restore();
-  }
-
-  function drawLights(c) {
-    var k = Math.min(3, Math.floor(S.t) + 1), i;
-    for (i = 0; i < 3; i++) {
-      c.save();
-      c.fillStyle = i < k ? (i === 2 ? C.leafLight : C.sun) : 'rgba(255,246,224,.30)';
-      c.beginPath(); c.arc(CX - 90 + i * 90, 250, 34, 0, 7); c.fill();
-      c.strokeStyle = C.ink; c.lineWidth = 5; c.stroke();
-      c.restore();
-    }
-    G.text(k >= 3 ? 'VIA!' : 'Pronti...', CX, 340, {
-      ctx: c, size: 54, color: C.cream, stroke: 'rgba(12,40,25,.75)', strokeWidth: 11
-    });
-  }
-
-  /* No position, no placing, no order of arrival — here or anywhere else. */
-  function drawFinish(c) {
-    c.save();
-    c.fillStyle = 'rgba(9,32,21,.45)'; c.fillRect(0, 0, W, H);
-    c.restore();
-    A.panel(c, 300, 190, 680, 340, { r: 32 });
-    G.text('Che bel giro!', CX, 268, { ctx: c, size: 56, color: C.ink });
-    if (A.fruit) A.fruit(c, 520, 350, 30, 'fragola');
-    G.text('+' + S.banked, 570, 352, { ctx: c, size: 46, color: C.ink, align: 'left' });
-    if (G.starIcon) G.starIcon(c, 720, 350, 28);
-    G.text('+1', 762, 352, { ctx: c, size: 46, color: C.ink, align: 'left' });
-    G.ui.button({
-      id: 'kagain', x: 350, y: 400, w: 280, h: 104, r: 28, color: C.leaf,
-      label: 'Ancora!', fontSize: 38, onTap: function () { reset(); }
-    });
-    G.ui.button({
-      id: 'kleave', x: 660, y: 400, w: 280, h: 104, r: 28, color: C.tangerine,
-      label: 'Giungla', fontSize: 34, onTap: function () { G.home(); }
-    });
-  }
 })();
 
 
 /* ==================== 26-bus.js ==================== */
-/* Dino Giungla — "Il Pulmino" (scene: bus). Owns G.save.bus.
-
-   A ride with errands, not a race: you drive a little bus along a road, stop to
-   pick friends up, take them where they want to go, and do small jobs on the way
-   — fill up with fruit, go through the wash, open the gate.
-
-   WHY IT IS A SIDE VIEW, and it is not a style preference: A.dino is drawn in
-   profile, anchored at the feet, with facing 1 or -1. A side-scrolling bus is
-   the one camera in which a driving dino costs nothing. The top-down ring next
-   door had the opposite problem.
-
-   AND WHY IT DOES NOT FIGHT THE CONTRACT the way a racer did: a bus that picks
-   passengers up has no position, no last place, no clock running out. Rule 3 is
-   not something to work around here, it is satisfied by the shape of the thing.
-   Nothing here can be failed:
-     - The bus never runs out of anything. The fruit tank empties, and an empty
-       tank makes the passengers wave for a top-up — it never stops the bus.
-     - The gate always opens; it just waits for a tap.
-     - Nobody is ever left behind: a passenger who is not picked up stays exactly
-       where he is, for ever, with no timer and no complaint.
-     - There is no wrong stop. Dropping someone at the wrong place simply does
-       not trigger the drop-off, and nothing says so.
-
-   Level 1: three stops, everybody wants the NEXT one, so the answer is always
-   "keep going". Level 2: six stops, everyone wants a specific place shown by its
-   symbol, and the road is longer. */
+/* Dino Giungla — Il Pulmino. A map of choices followed by tiny side activities.
+   Owns G.save.bus. Nothing expires and the reserve always reaches the pump. */
 (function () {
   'use strict';
-
-  var C = G.C, W = G.W, H = G.H;
-
-  var ROAD_Y = 596;            // where the wheels touch
-  var SKY_TOP = 96;
-  var BUS_X = 400;             // the bus stays here; the world scrolls
-  var BUS_S = 190;
-
-  /* The stops carry the symbols of the places that already exist, so a child who
-     cannot read still knows where he is being asked to go. */
-  var PLACES = [
-    { id: 'radura', name: 'la Radura', color: '#e8536b' },
-    { id: 'fili', name: 'i Fili', color: '#8f5bd6' },
-    { id: 'nido', name: 'il Nido', color: '#ff9f43' },
-    { id: 'casetta', name: 'la Casetta', color: '#4d80e4' },
-    { id: 'guardaroba', name: 'il Guardaroba', color: '#38d9a9' },
-    { id: 'girotondo', name: 'il Girotondo', color: '#ff6fae' }
-  ];
-
-  var CAST = [
-    { name: 'Pippi', color: '#ff6fae' },
-    { name: 'Bubu', color: '#4d80e4' },
-    { name: 'Momo', color: '#ffd75e' },
-    { name: 'Nina', color: '#38d9a9' },
-    { name: 'Rufo', color: '#ff9f43' },
-    { name: 'Lulu', color: '#8f5bd6' }
-  ];
-
-  function big() { return G.level === 2; }
-  function nStops() { return big() ? 6 : 3; }
-  function roadLen() { return 900 + nStops() * (big() ? 900 : 800); }
-  function speedMax() { return big() ? 330 : 260; }
-
-  /* ------------------------------------------------------------ save branch */
-  function br() {
-    var g = G.save.bus;
-    if (!g || typeof g !== 'object' || Array.isArray(g)) g = G.save.bus = {};
-    if (typeof g.done !== 'number' || !isFinite(g.done) || g.done < 0) g.done = 0;
-    if (typeof g.trips !== 'number' || !isFinite(g.trips) || g.trips < 0) g.trips = 0;
-    g.body = clampInt(g.body, 0, (A.BUS_BODY || [0]).length - 1);
-    g.wheels = clampInt(g.wheels, 0, (A.BUS_WHEEL || [0]).length - 1);
-    g.roof = clampInt(g.roof, 0, (A.BUS_ROOF || [0]).length - 1);
+  var C=G.C,W=G.W,H=G.H,ROAD=604;
+  var PLACES={
+    radura:{id:'radura',name:'la Radura',color:'#e8536b',glyph:'fruit'},
+    casetta:{id:'casetta',name:'la Casetta',color:'#4d80e4',glyph:'house'},
+    nido:{id:'nido',name:'il Nido',color:'#ff9f43',glyph:'egg'}
+  };
+  var CAST=[{name:'Pippi',color:'#ff6fae'},{name:'Bubu',color:'#4d80e4'}];
+  function big(){return G.level===2;}
+  function clampInt(v,a,b){v=Math.round(Number(v));return isFinite(v)?Math.max(a,Math.min(b,v)):a;}
+  function br(){
+    var g=G.save.bus;
+    if(!g||typeof g!=='object'||Array.isArray(g))g=G.save.bus={};
+    if(typeof g.done!=='number'||!isFinite(g.done)||g.done<0)g.done=0;
+    if(typeof g.trips!=='number'||!isFinite(g.trips)||g.trips<0)g.trips=0;
+    g.body=clampInt(g.body,0,(A.BUS_BODY||[0]).length-1);
+    g.wheels=clampInt(g.wheels,0,(A.BUS_WHEEL||[0]).length-1);
+    g.roof=clampInt(g.roof,0,(A.BUS_ROOF||[0]).length-1);
     return g;
   }
-  function clampInt(v, a, b) {
-    v = Math.round(Number(v));
-    return isFinite(v) ? Math.max(a, Math.min(b, v)) : a;
+  function partsOpen(){return Math.min(5,1+Math.floor(br().trips/2));}
+
+  var S={phase:'map',nodes:[],current:null,target:null,from:null,k:0,t:0,held:false,done:false,
+    waiting:[],riders:[],delivered:0,goal:0,tank:.5,dirt:.72,fuel:false,wash:false,
+    banked:0,spin:0,idle:0,hint:null,sayT:0,sayMsg:null};
+  function node(id){for(var i=0;i<S.nodes.length;i++)if(S.nodes[i].id===id)return S.nodes[i];return null;}
+  function say(s,d){S.sayMsg=s;S.sayT=d===undefined?.1:d;}
+  function build(){
+    S.nodes=[
+      {id:'depot',kind:'depot',name:'il Garage',x:160,y:570,color:C.tangerine},
+      {id:'fuel',kind:'fuel',name:'la Benzina',x:310,y:270,color:C.sun},
+      {id:'wash',kind:'wash',name:'il Lavaggio',x:650,y:560,color:C.water},
+      {id:'radura',kind:'stop',place:PLACES.radura,x:870,y:245,color:PLACES.radura.color},
+      {id:'casetta',kind:'stop',place:PLACES.casetta,x:1090,y:535,color:PLACES.casetta.color}
+    ];
+    if(big())S.nodes.push({id:'nido',kind:'stop',place:PLACES.nido,x:585,y:245,color:PLACES.nido.color});
+    S.waiting=[{at:'radura',to:'casetta',name:CAST[0].name,color:CAST[0].color,hop:0}];
+    if(big())S.waiting.push({at:'nido',to:'radura',name:CAST[1].name,color:CAST[1].color,hop:1.7});
+    S.riders=[];S.goal=S.waiting.length;
   }
-  /* Parts unlock by TRIPS, never by price: this scene has no shop and takes no
-     fruit. Something you earn by playing cannot be refused. */
-  function partsOpen() { return 1 + Math.floor(br().trips / 2); }
-
-  /* ---------------------------------------------------------------- state */
-  var S = {
-    phase: 'guida',       // 'guida' | 'garage' | 'fine'
-    x: 0, spd: 0, held: false, gasLatch: 0, spin: 0,
-    stops: [], jobs: [], riders: [], waiting: [],
-    dirt: 0, tank: 1,
-    doorT: 0, atStop: -1,
-    delivered: 0, banked: 0,
-    sayT: 0, sayMsg: null, idle: 0, nudges: 0, stuck: 0,
-    tilt: 0
-  };
-
-  function say(msg, delay) { S.sayMsg = msg; S.sayT = delay === undefined ? 0.1 : delay; }
-
-  function build() {
-    var i, k, g = br();
-    S.stops.length = 0; S.jobs.length = 0;
-    S.riders.length = 0; S.waiting.length = 0;
-    var n = nStops(), gap = (roadLen() - 700) / n;
-    for (i = 0; i < n; i++) {
-      S.stops.push({ x: 560 + i * gap, place: PLACES[i % PLACES.length], i: i });
-    }
-    /* Passengers wait at every stop but the last one. At level 1 everybody wants
-       the NEXT stop, so the answer to "where do I go" is always "keep going". */
-    for (i = 0; i < n - 1; i++) {
-      k = CAST[i % CAST.length];
-      S.waiting.push({
-        at: i, to: big() ? (i + 1 + G.rndi(0, n - i - 2)) : (i + 1),
-        name: k.name, color: k.color, hop: 0
-      });
-    }
-    S.jobs.push({ kind: 'pump', x: 560 + gap * 0.45, done: 0 });
-    S.jobs.push({ kind: 'wash', x: 560 + gap * (n > 2 ? 1.5 : 1.2), done: 0 });
-    S.jobs.push({ kind: 'gate', x: 560 + gap * (n > 3 ? 2.5 : 2.1), open: 0 });
-    void g;
+  function reset(){
+    build();S.phase='map';S.current=node('depot');S.target=S.from=null;S.k=S.t=0;S.held=S.done=false;
+    S.delivered=0;S.tank=big()?.43:.52;S.dirt=.72;S.fuel=S.wash=false;S.banked=S.spin=S.idle=0;S.hint=null;
   }
-
-  function reset() {
-    S.phase = 'guida';
-    S.x = 0; S.spd = 0; S.held = false; S.gasLatch = 0; S.spin = 0;
-    S.dirt = 0; S.tank = 1; S.doorT = 0; S.atStop = -1;
-    S.delivered = 0; S.banked = 0; S.idle = 0; S.nudges = 0; S.tilt = 0; S.stuck = 0;
-    S.sayMsg = null; S.sayT = 0;
-    build();
+  function allDone(){return S.fuel&&S.wash&&S.delivered>=S.goal&&!S.waiting.length&&!S.riders.length;}
+  function hint(){if(S.tank<.28&&!S.fuel)return'fuel';if(S.riders.length)return S.riders[0].to;
+    if(S.waiting.length)return S.waiting[0].at;if(!S.fuel)return'fuel';if(!S.wash)return'wash';return'depot';}
+  function choose(id){
+    if(S.phase!=='map')return;var n=node(id);if(!n||n===S.current){if(n)G.fx.ring(n.x,n.y,C.cream,58);return;}
+    S.from=S.current;S.target=n;S.k=0;S.phase='travel';S.idle=0;S.hint=null;G.sfx('whoosh');
   }
-
-  /* The only place fruit is handed out. Rewards are for DELIVERING, so the loop
-     the child is taught is "take your friend where he wants to go". */
-  function reward(n, x, y) {
-    if (n <= 0) return;
-    S.banked += n;
-    G.addFruits(n, x, y);
+  function arrive(){
+    S.current=S.target;S.target=null;S.phase='activity';S.t=0;S.done=S.held=false;
+    if(S.current.kind==='fuel')say('Facciamo il pieno! Tocca la pompa.');
+    else if(S.current.kind==='wash')say('Laviamo il pulmino! Strofina le bolle.');
+    else if(S.current.kind==='stop')say('Siamo arrivati a '+S.current.place.name+'!');
+    else if(allDone())finish();else say('Manca ancora una commissione!');
   }
+  function back(){if(S.phase==='fine')return;S.phase='map';S.t=0;S.done=S.held=false;S.idle=0;
+    say(allDone()?'Tutto fatto! Torniamo al garage!':'Dove andiamo adesso?',.15);}
+  function reward(n){S.banked+=n;G.addFruits(n,640,300);}
+  function serve(){
+    if(S.done)return;var id=S.current.id,i,r,did=false;
+    for(i=S.riders.length-1;i>=0;i--){r=S.riders[i];if(r.to!==id)continue;S.riders.splice(i,1);S.delivered++;did=true;
+      reward(big()?9:6);G.sfx('good');G.fx.confetti();say(r.name+' e arrivato a '+S.current.place.name+'!',0);}
+    for(i=S.waiting.length-1;i>=0;i--){r=S.waiting[i];if(r.at!==id)continue;S.waiting.splice(i,1);S.riders.push(r);did=true;
+      G.sfx('pop');say(r.name+' vuole andare a '+node(r.to).place.name+'!',.35);}
+    if(!did){G.sfx('pop');say('Qui e tutto a posto!',0);}S.done=true;S.t=.9;
+  }
+  function finish(){if(S.phase==='fine')return;var g=br();g.done++;g.trips++;G.saveNow();S.phase='fine';S.held=false;
+    G.addStars(1,640,280);G.sfx('win');G.fx.confetti();say('Tutte le commissioni sono fatte!',.2);}
+  G.busState=function(){return{phase:S.phase,current:S.current&&S.current.id,target:S.target&&S.target.id,tank:S.tank,dirt:S.dirt,
+    fuelDone:S.fuel,washDone:S.wash,delivered:S.delivered,goal:S.goal,waiting:S.waiting.length,riders:S.riders.length,allDone:allDone()};};
+  G.busChoose=choose;
 
-  /* ================================================================ SCENE */
-  G.scene('bus', {
-    enter: function () {
-      br();
-      reset();
-      if (!G.save.seen) G.save.seen = {};
-      var first = !G.save.seen.bus;
-      G.save.seen.bus = true;
-      G.saveNow();
-      setTimeout(function () {
-        if (G.current !== 'bus') return;
-        G.say(first
-          ? 'Questo e il tuo pulmino! Tieni premuto per andare, e fermati alle fermate.'
-          : G.pick(['Si parte!', 'Chi accompagniamo oggi?', 'Tutti a bordo!']));
-      }, 420);
+  G.scene('bus',{
+    enter:function(){br();reset();if(!G.save.seen||typeof G.save.seen!=='object')G.save.seen={};var first=!G.save.seen.bus;
+      G.save.seen.bus=true;G.saveNow();setTimeout(function(){if(G.current==='bus')G.say(first?
+        'Scegli sulla mappa: facciamo benzina, laviamo il pulmino e accompagniamo gli amici!':'Dove andiamo per prima cosa?');},420);},
+    exit:function(){S.held=false;},
+    update:function(dt){
+      var i;if(S.sayT>0){S.sayT-=dt;if(S.sayT<=0&&S.sayMsg){G.say(S.sayMsg);S.sayMsg=null;}}
+      for(i=0;i<S.waiting.length;i++)S.waiting[i].hop+=dt;S.spin+=dt*(S.phase==='travel'?13:1.5);
+      if(S.phase==='map'){S.idle+=dt;if(S.idle>(big()?10:7)){S.hint=hint();S.idle=0;if(!big())say('Tocca il posto che brilla!',0);}return;}
+      if(S.phase==='travel'){S.k=Math.min(1,S.k+dt/(big()?1.55:1.35));if(S.k>=1){var dx=S.target.x-S.from.x,dy=S.target.y-S.from.y;
+        S.tank=Math.max(.06,S.tank-(.10+Math.hypot(dx,dy)/2600));S.dirt=Math.min(1,S.dirt+.10);arrive();}return;}
+      if(S.phase!=='activity')return;if(!G.pointer||!G.pointer.down)S.held=false;S.t+=dt;
+      if(S.current.kind==='fuel'&&S.held&&!S.done){S.tank=Math.min(1,S.tank+dt*.85);if(S.tank>=.995){S.tank=1;S.fuel=S.done=true;S.t=.8;G.sfx('coin');G.fx.confetti();say('Pieno di frutta!',0);}}
+      else if(S.current.kind==='wash'&&S.held&&!S.done){S.dirt=Math.max(0,S.dirt-dt*1.15);if(S.dirt<=.02){S.dirt=0;S.wash=S.done=true;S.t=.8;G.sfx('chime');G.fx.confetti();say('Che pulito!',0);}}
+      if(S.done){S.t-=dt*2;if(S.t<=0)back();}else if(S.current.kind==='depot'&&S.t>1.1)back();
     },
-
-    exit: function () { S.held = false; },
-
-    update: function (dt) {
-      var i, j, st, r;
-      if (S.sayT > 0) {
-        S.sayT -= dt;
-        if (S.sayT <= 0 && S.sayMsg) { G.say(S.sayMsg); S.sayMsg = null; }
-      }
-      if (S.phase !== 'guida') return;
-
-      /* Safety net: window.blur zeroes pointer.down without calling onUp. */
-      if (!G.pointer || !G.pointer.down) S.held = false;
-
-      /* THE GAS LATCHES, and this is not a nicety. A three-year-old taps, he
-         does not hold: one tap keeps the finger down for a single frame, and
-         over the eight released frames that follow, braking at 520/s eats the
-         whole 340/s of acceleration — so tapping moved the bus exactly nowhere.
-         One tap is now worth 0.9s of throttle, so hammering, holding, and
-         anything in between all drive. */
-      S.gasLatch = Math.max(0, S.gasLatch - dt);
-      var going = S.held || S.gasLatch > 0;
-
-      var gate = S.jobs.filter(function (o) { return o.kind === 'gate'; })[0];
-      var blocked = gate && gate.open < 0.9 && S.x > gate.x - 150 && S.x < gate.x + 40;
-
-      var want = (going && !blocked) ? speedMax() : 0;
-
-      /* THE BUS PARKS ITSELF wherever there is something to do. Asking a
-         three-year-old to let go at exactly the right spot is precision, and
-         precision is the one thing this game never asks for. He holds to go; the
-         bus knows where it has to stop. No flag is needed: once the stop has
-         been served it has no business left, so the bus drives on by itself. */
-      var duty = -1, dd;
-      for (i = 0; i < S.stops.length; i++) {
-        if (S.stops[i].x < S.x - 40) continue;
-        if (!hasBusiness(i)) continue;
-        duty = i; break;
-      }
-      if (duty >= 0) {
-        dd = S.stops[duty].x - S.x;
-        if (dd < 240) want = Math.min(want, Math.max(0, dd * 1.5));
-      }
-      S.spd += G.clamp(want - S.spd, -520 * dt, 340 * dt);
-      S.spd = Math.max(0, S.spd);
-
-      /* Last-resort anti-deadlock. No situation in this scene may end with a
-         child holding the screen and nothing happening: if the finger is down,
-         the bus is not moving, and there is nothing to wait for here, push it
-         along regardless of why. */
-      if (going && S.spd < 6 && duty < 0 && !blocked) {
-        S.stuck += dt;
-        if (S.stuck > 1.5) { S.spd = 130; S.stuck = 0; }
-      } else {
-        S.stuck = 0;
-      }
-      S.x += S.spd * dt;
-      S.spin += S.spd * dt / 26;
-      S.tilt += ((S.held ? -0.03 : 0) - S.tilt) * Math.min(1, dt * 6);
-
-      if (S.x > roadLen()) { finish(); return; }
-
-      /* Tank and mud: both purely cosmetic pressure. An empty tank never stops
-         the bus, it only makes the passengers wave for a top-up. */
-      S.tank = Math.max(0, S.tank - dt * (big() ? 0.018 : 0.010));
-      S.dirt = Math.min(1, S.dirt + dt * 0.020);
-
-      // jobs
-      for (j = 0; j < S.jobs.length; j++) {
-        var job = S.jobs[j];
-        if (job.kind === 'wash' && Math.abs(S.x - job.x) < 60 && S.spd > 20) {
-          S.dirt = Math.max(0, S.dirt - dt * 1.4);
-          if (S.dirt < 0.02 && !job.done) { job.done = 1; G.sfx('chime'); say('Che bel pulmino pulito!', 0); }
-        }
-        if (job.kind === 'gate' && job.open > 0 && job.open < 1) job.open = Math.min(1, job.open + dt * 2.2);
-      }
-
-      // stops: the door opens on its own when the bus halts by a sign
-      S.atStop = -1;
-      for (i = 0; i < S.stops.length; i++) {
-        st = S.stops[i];
-        if (Math.abs(S.x - st.x) < 90) { S.atStop = i; break; }
-      }
-      if (S.atStop >= 0 && S.spd < 12) {
-        S.doorT = Math.min(1, S.doorT + dt * 4);
-        if (S.doorT >= 1) serve(S.atStop);
-      } else {
-        S.doorT = Math.max(0, S.doorT - dt * 4);
-      }
-
-      for (i = 0; i < S.riders.length; i++) {
-        r = S.riders[i];
-        r.hop = Math.abs(Math.sin(G.t * 5 + i)) * 4;
-      }
-
-      /* A nudge that shows instead of telling: the bus creeps forward by itself
-         so a three-year-old sees what the screen is for. */
-      S.idle += dt;
-      if (!big() && S.spd < 5 && S.idle > 9 && S.nudges < 2 && duty < 0) {
-        S.idle = 0; S.nudges++;
-        say('Tieni il dito sullo schermo per andare!', 0);
-        S.spd = 90;
-      }
-      if (S.spd > 20) S.idle = 0;
-    },
-
-    onDown: function (p) {
-      if (p.y < 112) return;
-      S.idle = 0;
-      if (S.phase !== 'guida') return;
-
-      /* A tap does the job here AND drives, never one instead of the other.
-         These two branches used to `return` before setting S.held, which meant
-         that standing next to the pump every single tap topped up the tank and
-         the bus could never set off again — a dead end you could not get out of,
-         which is the worst thing this game can do. */
-      var gate = S.jobs.filter(function (o) { return o.kind === 'gate'; })[0];
-      if (gate && gate.open <= 0 && Math.abs(S.x - gate.x) < 220) {
-        gate.open = 0.01; G.sfx('pop'); say('Apriti!', 0);
-      }
-      var pump = S.jobs.filter(function (o) { return o.kind === 'pump'; })[0];
-      if (pump && Math.abs(S.x - pump.x) < 150 && S.spd < 20 && S.tank < 0.98) {
-        S.tank = 1; pump.done = 1;
-        G.sfx('coin'); G.fx.confetti();
-        say('Pieno di frutta!', 0);
-      }
-      S.held = true; S.gasLatch = 0.9;
-    },
-
-    onUp: function () { S.held = false; },
-
-    draw: function (c) { drawAll(c); }
+    onDown:function(p){if(p.y<112||S.phase!=='activity')return;if(S.current.kind==='fuel'){S.held=true;S.tank=Math.min(1,S.tank+.16);G.sfx('pop');}
+      else if(S.current.kind==='wash'){S.held=true;S.dirt=Math.max(0,S.dirt-.20);G.sfx('pop');G.fx.burst(p.x,p.y,{color:C.water,count:7,speed:120,life:.45,size:10});}
+      else if(S.current.kind==='stop')serve();},
+    onMove:function(p){if(S.phase==='activity'&&S.current.kind==='wash'&&S.held){S.dirt=Math.max(0,S.dirt-.045);if(Math.random()<.25)G.fx.burst(p.x,p.y,{color:C.cream,count:2,speed:70,life:.35,size:8});}},
+    onUp:function(){S.held=false;},
+    draw:function(c){if(S.phase==='map'||S.phase==='travel'||S.phase==='garage')drawMap(c);else drawActivity(c);if(S.phase==='fine')drawEnd(c);if(S.phase==='garage')drawGarage(c);}
   });
 
-  /* Everyone whose destination is this stop gets off; everyone waiting here gets
-     on. There is no wrong stop: dropping somebody in the wrong place simply does
-     not fire, and nothing tells him off. */
-  /* Somebody to drop off here, or somebody waiting to get on. */
-  function hasBusiness(i) {
-    var k;
-    for (k = 0; k < S.riders.length; k++) if (S.riders[k].to === i) return true;
-    for (k = 0; k < S.waiting.length; k++) if (S.waiting[k].at === i) return true;
-    return false;
-  }
-
-  function serve(i) {
-    var st = S.stops[i], k, r;
-    for (k = S.riders.length - 1; k >= 0; k--) {
-      r = S.riders[k];
-      if (r.to !== i) continue;
-      S.riders.splice(k, 1);
-      S.delivered++;
-      reward(big() ? 9 : 6, BUS_X + 60, ROAD_Y - 120);
-      G.sfx('good'); G.fx.confetti();
-      G.fx.ring(BUS_X + 60, ROAD_Y - 110, r.color);
-      say(r.name + ' e arrivato a ' + st.place.name + '!', 0);
+  function glyph(c,n,x,y,r){
+    c.save();c.lineCap='round';c.lineJoin='round';
+    if(n.kind==='fuel'){
+      c.fillStyle=C.cream;c.strokeStyle=C.ink;c.lineWidth=Math.max(3,r*.09);
+      G.roundRect(c,x-r*.40,y-r*.46,r*.62,r*.92,r*.10);c.fill();c.stroke();
+      c.fillStyle=C.sun;G.roundRect(c,x-r*.29,y-r*.32,r*.40,r*.28,r*.05);c.fill();
+      c.beginPath();c.moveTo(x+r*.22,y-r*.25);c.quadraticCurveTo(x+r*.58,y-r*.12,x+r*.48,y+r*.30);c.stroke();
+      if(A.fruit)A.fruit(c,x-r*.09,y+r*.20,r*.18,'fragola');
     }
-    for (k = S.waiting.length - 1; k >= 0; k--) {
-      r = S.waiting[k];
-      if (r.at !== i) continue;
-      S.waiting.splice(k, 1);
-      S.riders.push(r);
-      G.sfx('pop');
-      say(r.name + ' vuole andare a ' + S.stops[r.to].place.name + '!', 0.4);
-    }
+    else if(n.kind==='wash'){c.fillStyle=C.water;[[-.3,-.06,.27],[.1,-.28,.22],[.3,.15,.18],[-.05,.27,.16]].forEach(function(b){c.beginPath();c.arc(x+b[0]*r,y+b[1]*r,b[2]*r,0,7);c.fill();});}
+    else if(n.kind==='depot'){c.strokeStyle=C.cream;c.lineWidth=r*.15;c.beginPath();c.moveTo(x-r*.52,y);c.lineTo(x,y-r*.46);c.lineTo(x+r*.52,y);c.moveTo(x-r*.37,y);c.lineTo(x-r*.37,y+r*.45);c.lineTo(x+r*.37,y+r*.45);c.lineTo(x+r*.37,y);c.stroke();}
+    else if(n.place.glyph==='fruit'&&A.fruit)A.fruit(c,x,y,r*.52,'fragola');
+    else if(n.place.glyph==='egg'&&A.egg)A.egg(c,x,y,r*.82,{color:C.cream});
+    else{c.fillStyle=C.cream;c.strokeStyle=C.ink;c.lineWidth=4;c.beginPath();c.moveTo(x-r*.5,y);c.lineTo(x,y-r*.48);c.lineTo(x+r*.5,y);c.lineTo(x+r*.36,y+r*.43);c.lineTo(x-r*.36,y+r*.43);c.closePath();c.fill();c.stroke();}c.restore();
   }
-
-  function finish() {
-    var g = br();
-    g.done++; g.trips++;
-    G.saveNow();
-    S.phase = 'fine';
-    G.sfx('win'); G.fx.confetti();
-    G.addStars(1, 640, 300);
-    say(G.pick(['Che bel viaggio!', 'Tutti arrivati!', 'Bravo autista!']), 0.2);
+  function tick(c,x,y,r){c.save();c.strokeStyle='#fff';c.lineWidth=Math.max(4,r*.3);c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(x-r*.5,y);c.lineTo(x-r*.1,y+r*.45);c.lineTo(x+r*.55,y-r*.45);c.stroke();c.restore();}
+  function miniBus(c,x,y,s){var g=br(),col=(A.BUS_BODY&&A.BUS_BODY[g.body])||C.tangerine;c.save();c.translate(x,y);c.scale(s,s);c.fillStyle='rgba(43,29,18,.22)';c.beginPath();c.ellipse(0,25,55,20,0,0,7);c.fill();c.fillStyle=col;c.strokeStyle=C.ink;c.lineWidth=5;G.roundRect(c,-55,-32,110,66,20);c.fill();c.stroke();c.fillStyle='#dff6ff';G.roundRect(c,-35,-22,70,28,9);c.fill();c.fillStyle=C.barkDark;c.beginPath();c.arc(-34,34,14,0,7);c.arc(34,34,14,0,7);c.fill();c.restore();}
+  function objectives(c){var a=[{d:S.fuel,n:node('fuel')},{d:S.wash,n:node('wash')},{d:S.delivered>=S.goal,n:{kind:'stop',place:PLACES.casetta}}];for(var i=0;i<a.length;i++){var x=490+i*142,y=156;c.fillStyle=a[i].d?'rgba(56,217,169,.92)':'rgba(255,246,224,.92)';c.beginPath();c.arc(x,y,38,0,7);c.fill();glyph(c,a[i].n,x,y,46);if(a[i].d)tick(c,x+28,y-25,15);}}
+  function drawNode(c,n){var wait=S.waiting.filter(function(r){return r.at===n.id;}),arr=S.riders.filter(function(r){return r.to===n.id;});var done=n.kind==='fuel'&&S.fuel||n.kind==='wash'&&S.wash;var glow=S.hint===n.id||allDone()&&n.kind==='depot';if(glow){c.save();c.globalAlpha=.3+Math.sin(G.t*5)*.18;c.fillStyle=C.sun;c.beginPath();c.arc(n.x,n.y,78,0,7);c.fill();c.restore();}G.ui.round({id:'map-'+n.id,x:n.x,y:n.y,r:55,color:done?C.leaf:n.color,icon:function(cc,x,y,r){glyph(cc,n,x,y,r);},onTap:function(){choose(n.id);}});if(done)tick(c,n.x+42,n.y-42,18);if(wait.length&&A.chick)A.chick(c,n.x+68,n.y+58+Math.sin(wait[0].hop*5)*5,72,{t:G.t,color:wait[0].color});if(arr.length){c.fillStyle=arr[0].color;c.beginPath();c.arc(n.x-58,n.y-48,19,0,7);c.fill();c.strokeStyle=C.cream;c.lineWidth=4;c.stroke();}}
+  function drawMap(c){
+    if(A.jungle)A.jungle(c,G.t,{dim:.16});else{c.fillStyle=C.sky;c.fillRect(0,0,W,H);}c.fillStyle='rgba(255,246,224,.88)';G.roundRect(c,38,112,W-76,574,42);c.fill();c.fillStyle='#a8d481';G.roundRect(c,58,132,W-116,534,32);c.fill();
+    var hub={x:625,y:410},i,n;c.save();c.strokeStyle='#d3b47c';c.lineWidth=34;c.lineCap='round';for(i=0;i<S.nodes.length;i++){n=S.nodes[i];c.beginPath();c.moveTo(hub.x,hub.y);c.lineTo(n.x,n.y);c.stroke();}c.strokeStyle='rgba(255,246,224,.72)';c.lineWidth=5;c.setLineDash([18,18]);for(i=0;i<S.nodes.length;i++){n=S.nodes[i];c.beginPath();c.moveTo(hub.x,hub.y);c.lineTo(n.x,n.y);c.stroke();}c.setLineDash([]);c.restore();objectives(c);for(i=0;i<S.nodes.length;i++)drawNode(c,S.nodes[i]);
+    var x=S.current.x,y=S.current.y;if(S.phase==='travel'){var k=G.ease(S.k);x=G.lerp(S.from.x,S.target.x,k);y=G.lerp(S.from.y,S.target.y,k);}miniBus(c,x,y-6,.9);
+    if(S.phase==='map')G.ui.round({id:'busgarage',x:W-92,y:H-82,r:52,color:C.tangerine,icon:function(cc,x,y,r){glyph(cc,node('depot'),x,y,r);},onTap:function(){S.phase='garage';G.sfx('pop');}});
   }
-
-  /* ----------------------------------------------------------------- draw */
-  function wx(x) { return x - S.x + BUS_X; }        // world x -> screen x
-
-  function drawAll(c) {
-    var i;
-    drawSky(c);
-    drawRoad(c);
-    for (i = 0; i < S.jobs.length; i++) drawJob(c, S.jobs[i]);
-    for (i = 0; i < S.stops.length; i++) drawStop(c, S.stops[i]);
-    for (i = 0; i < S.waiting.length; i++) drawWaiting(c, S.waiting[i]);
-    drawBus(c);
-    drawHudBits(c);
-    if (S.phase === 'fine') drawEnd(c);
-    else drawGarageButton(c);
-    if (S.phase === 'garage') drawGarage(c);
+  function gauge(c,x,y,w,h,k,col){c.fillStyle='rgba(43,29,18,.28)';G.roundRect(c,x,y,w,h,h/2);c.fill();c.fillStyle=col;G.roundRect(c,x+5,y+5,Math.max(1,(w-10)*G.clamp(k,0,1)),h-10,(h-10)/2);c.fill();}
+  function drawActivity(c){
+    if(A.jungle)A.jungle(c,G.t,{dim:.1});else{c.fillStyle=C.sky;c.fillRect(0,0,W,H);}c.fillStyle='#8fbf63';c.fillRect(0,ROAD-10,W,H-ROAD+10);c.fillStyle='#b39a72';c.fillRect(0,ROAD,W,104);c.fillStyle='rgba(255,246,224,.72)';for(var i=0;i<12;i++)c.fillRect(i*120,ROAD+48,62,9);
+    var g=br(),bx=650;if(S.current.kind==='fuel'&&A.pump)A.pump(c,300,ROAD,220,{level:S.tank});if(S.current.kind==='wash'&&A.wash)A.wash(c,650,ROAD,350,{on:S.held||S.done});if(S.current.kind==='stop'){if(A.busStop)A.busStop(c,930,ROAD,190,{here:true,icon:function(cc,x,y,r){glyph(cc,S.current,x,y,r*1.35);}});var list=S.waiting.filter(function(r){return r.at===S.current.id;});if(list.length&&A.chick)A.chick(c,1040,ROAD-8,92,{t:G.t,color:list[0].color});}
+    A.bus(c,bx,ROAD,220,{body:g.body,wheels:g.wheels,roof:g.roof,spin:S.spin,dirt:S.dirt,doorOpen:S.current.kind==='stop',riders:S.riders});A.dino(c,bx-66,ROAD-35,101,{facing:1,pose:S.done?'happy':'idle',t:G.t,color:(G.account&&G.account.color)||C.dino});if(S.done)return;
+    c.save();c.globalAlpha=.6+Math.sin(G.t*5)*.25;c.fillStyle='rgba(255,246,224,.92)';c.beginPath();c.arc(640,235,68,0,7);c.fill();c.restore();if(S.current.kind==='fuel'){if(A.fruit)A.fruit(c,640,235,36,'fragola');gauge(c,820,210,260,42,S.tank,C.sun);}else if(S.current.kind==='wash'){glyph(c,node('wash'),640,235,75);gauge(c,820,210,260,42,1-S.dirt,C.water);}else if(S.current.kind==='stop'){c.fillStyle=C.leaf;c.beginPath();c.moveTo(610,220);c.lineTo(670,235);c.lineTo(610,250);c.closePath();c.fill();}
   }
-
-  function drawSky(c) {
-    if (A.jungle) { A.jungle(c, G.t, { dim: 0.10 }); return; }
-    c.fillStyle = C.sky; c.fillRect(0, 0, W, H);
-  }
-
-  function drawRoad(c) {
-    var i, x;
-    c.save();
-    c.fillStyle = '#8fbf63'; c.fillRect(0, ROAD_Y - 6, W, H - ROAD_Y + 6);
-    c.fillStyle = '#b39a72'; c.fillRect(0, ROAD_Y, W, 96);
-    c.fillStyle = '#8d7351'; c.fillRect(0, ROAD_Y, W, 8);
-    c.fillStyle = 'rgba(255,246,224,.72)';           // dashes, scrolling
-    for (i = -1; i < 14; i++) {
-      x = ((i * 120) - (S.x % 120));
-      c.fillRect(x, ROAD_Y + 46, 62, 9);
-    }
-    c.restore();
-    void SKY_TOP;
-  }
-
-  function placeGlyph(pl) {
-    return function (c, x, y, r) {
-      c.save();
-      c.fillStyle = pl.color;
-      c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
-      c.strokeStyle = C.ink; c.lineWidth = Math.max(2, r * 0.18); c.stroke();
-      c.fillStyle = C.cream;
-      c.beginPath(); c.arc(x, y, r * 0.42, 0, 6.2832); c.fill();
-      c.restore();
-    };
-  }
-
-  function drawStop(c, st) {
-    var x = wx(st.x);
-    if (x < -160 || x > W + 160) return;
-    A.busStop(c, x, ROAD_Y, 150, {
-      here: S.atStop === st.i && S.doorT > 0.5,
-      icon: placeGlyph(st.place)
-    });
-  }
-
-  function drawWaiting(c, r) {
-    var st = S.stops[r.at], x = wx(st.x) + 76;
-    if (x < -120 || x > W + 120) return;
-    if (A.chick) A.chick(c, x, ROAD_Y - 8, 74, { t: G.t + r.at, color: r.color });
-    /* Where he wants to go, shown as the symbol of the place — never a word. */
-    var dst = S.stops[r.to];
-    if (dst) {
-      c.save();
-      c.fillStyle = 'rgba(255,246,224,.94)';
-      c.beginPath(); c.arc(x + 6, ROAD_Y - 104, 30, 0, 6.2832); c.fill();
-      c.strokeStyle = r.color; c.lineWidth = 5; c.stroke();
-      c.restore();
-      placeGlyph(dst.place)(c, x + 6, ROAD_Y - 104, 15);
-    }
-  }
-
-  function drawJob(c, job) {
-    var x = wx(job.x);
-    if (x < -220 || x > W + 220) return;
-    if (job.kind === 'pump') A.pump(c, x, ROAD_Y, 190, { level: S.tank });
-    else if (job.kind === 'wash') A.wash(c, x, ROAD_Y, 250, { on: Math.abs(S.x - job.x) < 60 && S.spd > 20 });
-    else if (job.kind === 'gate') A.gate(c, x, ROAD_Y, 220, { open: job.open });
-  }
-
-  function drawBus(c) {
-    var g = br();
-    A.bus(c, BUS_X, ROAD_Y, BUS_S, {
-      body: g.body, wheels: g.wheels, roof: g.roof,
-      spin: S.spin, dirt: S.dirt, tilt: S.tilt,
-      doorOpen: S.doorT > 0.5, riders: S.riders
-    });
-    /* The driver: the current player, so no `hat` and no `gear` — A.dino reads
-       the live save and brings the glasses and the bow tie along. */
-    var col = (G.account && G.account.color) || C.dino;
-    A.dino(c, BUS_X - BUS_S * 0.30, ROAD_Y - BUS_S * 0.16, BUS_S * 0.46, {
-      facing: 1, pose: S.spd > 30 ? 'happy' : 'idle', t: G.t, color: col
-    });
-  }
-
-  /* Two dials, both readable without numbers: how full the tank is, and who is
-     on board. Neither can reach a state that stops the game. */
-  function drawHudBits(c) {
-    var i, r;
-    for (i = 0; i < S.riders.length && i < 5; i++) {
-      r = S.riders[i];
-      c.save();
-      c.fillStyle = 'rgba(255,246,224,.92)';
-      c.beginPath(); c.arc(120 + i * 74, 150, 32, 0, 6.2832); c.fill();
-      c.strokeStyle = r.color; c.lineWidth = 5; c.stroke();
-      c.restore();
-      var dst = S.stops[r.to];
-      if (dst) placeGlyph(dst.place)(c, 120 + i * 74, 150, 16);
-    }
-    if (S.tank < 0.35) {
-      c.save();
-      c.globalAlpha = 0.6 + Math.sin(G.t * 4) * 0.3;
-      if (A.fruit) A.fruit(c, W - 90, 150, 26, 'fragola');
-      c.restore();
-    }
-  }
-
-  function drawGarageButton(c) {
-    G.ui.round({
-      id: 'garage', x: W - 84, y: H - 84, r: 54, color: C.tangerine,
-      icon: function (cc, x, y, r) {
-        cc.save();
-        cc.strokeStyle = '#fff'; cc.lineWidth = Math.max(4, r * 0.16);
-        cc.lineCap = 'round'; cc.lineJoin = 'round';
-        cc.beginPath();
-        cc.moveTo(x - r * 0.5, y + r * 0.1); cc.lineTo(x, y - r * 0.45);
-        cc.lineTo(x + r * 0.5, y + r * 0.1);
-        cc.moveTo(x - r * 0.34, y + r * 0.05); cc.lineTo(x - r * 0.34, y + r * 0.5);
-        cc.lineTo(x + r * 0.34, y + r * 0.5); cc.lineTo(x + r * 0.34, y + r * 0.05);
-        cc.stroke();
-        cc.restore();
-      },
-      onTap: function () { S.phase = S.phase === 'garage' ? 'guida' : 'garage'; G.sfx('pop'); }
-    });
-    void c;
-  }
-
-  /* The garage. Parts unlock by TRIPS, never by price: a thing you earn by
-     playing cannot say no to you, so there is no soft refusal to design. */
-  function drawGarage(c) {
-    var g = br(), open = partsOpen(), i;
-    c.save(); c.fillStyle = 'rgba(9,32,21,.55)'; c.fillRect(0, 0, W, H); c.restore();
-    A.panel(c, 150, 120, 980, 480, { r: 32 });
-    G.text('Il tuo pulmino', 640, 176, { ctx: c, size: 44, color: C.ink });
-
-    A.bus(c, 640, 336, 200, { body: g.body, wheels: g.wheels, roof: g.roof, spin: G.t * 2 });
-
-    var rows = [
-      { key: 'body', list: A.BUS_BODY, y: 400, label: 'Colore' },
-      { key: 'wheels', list: A.BUS_WHEEL, y: 490, label: 'Ruote' },
-      { key: 'roof', list: A.BUS_ROOF, y: 490, label: 'Tetto' }
-    ];
-    // colours on one row, wheels and roof share the next
-    for (i = 0; i < A.BUS_BODY.length; i++) {
-      (function (idx) {
-        var bx = 210 + idx * 118;
-        G.ui.button({
-          id: 'bbody' + idx, x: bx, y: 396, w: 106, h: 106, r: 22,
-          color: idx < open ? A.BUS_BODY[idx] : '#a49889',
-          icon: function (cc, cx, cy) {
-            if (idx >= open) { lockGlyph(cc, cx, cy, 26); return; }
-            if (g.body === idx) tick(cc, cx, cy, 26);
-          },
-          onTap: function () {
-            if (idx >= open) { G.sfx('pop'); G.say('Fai ancora un viaggio!'); return; }
-            g.body = idx; G.saveNow(); G.sfx('chime');
-          }
-        });
-      })(i);
-    }
-    for (i = 0; i < A.BUS_WHEEL.length; i++) {
-      (function (idx) {
-        var bx = 210 + idx * 118;
-        G.ui.button({
-          id: 'bwheel' + idx, x: bx, y: 508, w: 106, h: 106, r: 22,
-          color: idx < open ? C.cream : '#a49889',
-          icon: function (cc, cx, cy) {
-            if (idx >= open) { lockGlyph(cc, cx, cy, 26); return; }
-            A.bus(cc, cx, cy + 26, 78, { body: g.body, wheels: idx, roof: 0 });
-            if (g.wheels === idx) tick(cc, cx + 32, cy - 26, 18);
-          },
-          onTap: function () {
-            if (idx >= open) { G.sfx('pop'); G.say('Fai ancora un viaggio!'); return; }
-            g.wheels = idx; G.saveNow(); G.sfx('chime');
-          }
-        });
-      })(i);
-    }
-    for (i = 0; i < A.BUS_ROOF.length; i++) {
-      (function (idx) {
-        var bx = 600 + idx * 118;
-        G.ui.button({
-          id: 'broof' + idx, x: bx, y: 508, w: 106, h: 106, r: 22,
-          color: idx < open ? C.cream : '#a49889',
-          icon: function (cc, cx, cy) {
-            if (idx >= open) { lockGlyph(cc, cx, cy, 26); return; }
-            A.bus(cc, cx, cy + 26, 78, { body: g.body, wheels: g.wheels, roof: idx });
-            if (g.roof === idx) tick(cc, cx + 32, cy - 26, 18);
-          },
-          onTap: function () {
-            if (idx >= open) { G.sfx('pop'); G.say('Fai ancora un viaggio!'); return; }
-            g.roof = idx; G.saveNow(); G.sfx('chime');
-          }
-        });
-      })(i);
-    }
-    G.ui.button({
-      id: 'bclose', x: 940, y: 508, w: 180, h: 106, r: 24, color: C.leaf,
-      label: 'Vai!', fontSize: 38,
-      onTap: function () { S.phase = 'guida'; G.sfx('pop'); }
-    });
-    void rows;
-  }
-
-  function lockGlyph(c, x, y, r) {
-    c.save();
-    c.fillStyle = 'rgba(255,246,224,.7)';
-    G.roundRect(c, x - r * 0.6, y - r * 0.2, r * 1.2, r * 0.9, r * 0.16); c.fill();
-    c.strokeStyle = 'rgba(255,246,224,.7)'; c.lineWidth = Math.max(3, r * 0.16);
-    c.beginPath(); c.arc(x, y - r * 0.2, r * 0.38, Math.PI, 0); c.stroke();
-    c.restore();
-  }
-  function tick(c, x, y, r) {
-    c.save();
-    c.strokeStyle = '#fff'; c.lineWidth = Math.max(4, r * 0.3);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(x - r * 0.5, y); c.lineTo(x - r * 0.1, y + r * 0.45); c.lineTo(x + r * 0.55, y - r * 0.45);
-    c.stroke();
-    c.restore();
-  }
-
-  function drawEnd(c) {
-    c.save(); c.fillStyle = 'rgba(9,32,21,.45)'; c.fillRect(0, 0, W, H); c.restore();
-    A.panel(c, 300, 190, 680, 340, { r: 32 });
-    G.text('Che bel viaggio!', 640, 268, { ctx: c, size: 54, color: C.ink });
-    if (A.fruit) A.fruit(c, 520, 350, 30, 'fragola');
-    G.text('+' + S.banked, 570, 352, { ctx: c, size: 46, color: C.ink, align: 'left' });
-    if (G.starIcon) G.starIcon(c, 720, 350, 28);
-    G.text('+1', 762, 352, { ctx: c, size: 46, color: C.ink, align: 'left' });
-    G.ui.button({
-      id: 'bagain', x: 350, y: 400, w: 280, h: 104, r: 28, color: C.leaf,
-      label: 'Ancora!', fontSize: 38, onTap: function () { reset(); }
-    });
-    G.ui.button({
-      id: 'bleave', x: 660, y: 400, w: 280, h: 104, r: 28, color: C.tangerine,
-      label: 'Giungla', fontSize: 34, onTap: function () { G.home(); }
-    });
-  }
+  function drawGarage(c){var g=br(),open=partsOpen(),i;c.save();c.fillStyle='rgba(9,32,21,.62)';c.fillRect(0,0,W,H);c.restore();A.panel(c,120,118,1040,530,{r:34});G.text('Il tuo pulmino',640,172,{ctx:c,size:44,color:C.ink});A.bus(c,640,360,205,{body:g.body,wheels:g.wheels,roof:g.roof,spin:G.t*2});for(i=0;i<A.BUS_BODY.length;i++)choice('body',i,190+i*122,430,open,g);for(i=0;i<A.BUS_WHEEL.length;i++)choice('wheels',i,190+i*122,548,open,g);for(i=0;i<A.BUS_ROOF.length;i++)choice('roof',i,700+i*122,548,open,g);G.ui.button({id:'busclose',x:920,y:424,w:210,h:108,r:26,label:'Mappa',color:C.leaf,fontSize:34,onTap:function(){S.phase='map';}});}
+  function choice(key,idx,x,y,open,g){var ok=idx<open;G.ui.button({id:'bus-'+key+idx,x:x,y:y,w:108,h:100,r:22,color:ok?(key==='body'?A.BUS_BODY[idx]:C.cream):'#a49889',icon:function(c,cx,cy){if(!ok){c.fillStyle='rgba(255,246,224,.7)';G.roundRect(c,cx-18,cy-8,36,32,7);c.fill();return;}if(key!=='body'){var o={body:g.body,wheels:g.wheels,roof:g.roof};o[key]=idx;A.bus(c,cx,cy+25,72,o);}if(g[key]===idx)tick(c,cx+30,cy-26,17);},onTap:function(){if(!ok){G.say('Fai ancora un viaggio!');return;}g[key]=idx;G.saveNow();G.sfx('chime');}});}
+  function drawEnd(c){c.save();c.fillStyle='rgba(9,32,21,.52)';c.fillRect(0,0,W,H);c.restore();A.panel(c,300,180,680,370,{r:34});G.text('Tutto fatto!',640,258,{ctx:c,size:58,color:C.ink});if(A.fruit)A.fruit(c,505,346,30,'fragola');G.text('+'+S.banked,555,350,{ctx:c,size:46,color:C.ink,align:'left'});if(G.starIcon)G.starIcon(c,720,346,28);G.text('+1',758,350,{ctx:c,size:46,color:C.ink,align:'left'});G.ui.button({id:'busagain',x:350,y:414,w:280,h:104,r:28,color:C.leaf,label:'Ancora!',fontSize:38,onTap:reset});G.ui.button({id:'busleave',x:660,y:414,w:280,h:104,r:28,color:C.tangerine,label:'Giungla',fontSize:34,onTap:G.home});}
 })();
 
 

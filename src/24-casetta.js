@@ -245,7 +245,7 @@
 
   /* ---------------------------------------------------------------- state */
   var S = {
-    shop: false, brush: false,
+    shop: false, brush: false, edit: false,
     fly: null, drag: null,
     party: 0, idle: 0, nudges: 0, sayT: 0, sayMsg: null,
     softT: 0, softX: 0, softY: 0,
@@ -432,19 +432,24 @@
   G.scene('casetta', {
     enter: function () {
       var g = br();
-      S.shop = false; S.brush = false; S.fly = null; S.drag = null;
+      S.shop = false; S.brush = false; S.edit = false; S.fly = null; S.drag = null;
       S.party = 0; S.idle = 0; S.nudges = 0; S.softT = 0;
       S.sayMsg = null; S.sayT = 0;
       S.moment = 0; S.beat = 0; S.tintK = 1; S.tintFrom = 0;
       S.ask = null; S.askT = 0; S.fade = 0; S.fadeTo = -1;
       g.room = 0;
 
-      /* Two presents, one per room, so neither is ever empty on the first visit:
-         a room with nothing in it is the only moment the house can look broken. */
-      if (!g.gift) {
-        g.gift = true;
-        [BY_ID.tappeto, BY_ID.ciotola].forEach(function (d) {
-          g.items.push({ id: d.id, c: 0, r: d.r, x: d.home[0], y: d.home[1] });
+      /* A real starter home, migrated for existing saves too. A bowl in one
+         room and a rug in the other made the first visit look like unfinished
+         scenery. Purchases still expand and personalise it; architecture no
+         longer has to be bought before the place reads as a home. */
+      if (g.starter !== 2) {
+        g.starter = 2; g.gift = true;
+        ['ciotola', 'pouf', 'finestra', 'tappeto', 'lettino', 'lampada'].forEach(function (id) {
+          var d = BY_ID[id];
+          if (g.items.some(function (it) { return it.id === id; })) return;
+          var spot = d.on === 'wall' ? { x: d.home[0], y: d.home[1] } : placeNew(d);
+          g.items.push({ id: d.id, c: 0, r: d.r, x: spot.x, y: spot.y });
         });
         G.saveNow();
       }
@@ -464,7 +469,7 @@
       }, 420);
     },
 
-    exit: function () { S.fly = null; S.drag = null; S.shop = false; },
+    exit: function () { S.fly = null; S.drag = null; S.shop = false; S.edit = false; },
 
     update: function (dt) {
       if (S.softT > 0) S.softT = Math.max(0, S.softT - dt);
@@ -490,6 +495,7 @@
         if (S.fade < 0) S.fade = 0;
       }
 
+      if (S.edit) return;                       // furnishing mode is calm and still
       if (S.ask) { S.askT -= dt; if (S.askT <= 0) newAsk(); }
 
       if (S.party > 0) {
@@ -532,7 +538,7 @@
     onDown: function (p) {
       S.idle = 0;
       if (S.fade > 0) return;
-      if (S.shop) { S.shop = false; return; }
+      if (S.shop && !S.edit) { S.shop = false; return; }
 
       var dr = ROOMS[room()].door;              // the door: walk through it
       var doorX = dr === 1 ? 1204 : 76;
@@ -607,11 +613,16 @@
       if (A.HOUSE_FRONT[it.id]) A.houseFront(c, it.id, it.x, it.y, d.w * A.roomDepth(it.y), { c: it.c });
     });
 
-    drawAsk(c);
+    if (!S.edit) drawAsk(c);
     drawFly(c);
-    drawPartyButton(c);
-    if (S.party > 0) drawParty(c);
-    if (big()) drawShopL2(c); else drawShopL1(c);
+    if (!S.edit) drawPartyButton(c);
+    if (!S.edit && S.party > 0) drawParty(c);
+    if (S.edit) {
+      c.save(); c.fillStyle = 'rgba(255,246,224,.14)'; c.fillRect(0, 96, W, H - 96); c.restore();
+    }
+    drawRoomTabs(c);
+    drawEditToggle(c);
+    if (S.edit) { if (big()) drawShopL2(c); else drawShopL1(c); }
     drawSoftNo(c);
     drawFade(c);
     void i;
@@ -800,6 +811,35 @@
     c.restore();
   }
 
+  /* Normal play keeps the room immersive. The full toolbox appears only while
+     furnishing, behind one stable button that never changes side. */
+  function drawRoomTabs(c) {
+    if (S.edit) return;
+    [0, 1].forEach(function (r) {
+      G.ui.button({
+        id: 'roomtab' + r, x: 392 + r * 252, y: 108, w: 236, h: 92, r: 24,
+        label: ROOMS[r].name, fontSize: 30,
+        color: room() === r ? C.leaf : C.cream,
+        textColor: room() === r ? C.cream : C.ink,
+        onTap: function () { if (room() !== r) goRoom(r); }
+      });
+    });
+  }
+
+  function drawEditToggle(c) {
+    G.ui.round({
+      id: 'casaedit', x: 1090, y: 160, r: 52,
+      color: S.edit ? C.leaf : C.tangerine,
+      icon: function (cc, x, y, r) { cartGlyph(cc, x, y, r * .78); },
+      onTap: function () {
+        S.edit = !S.edit; S.shop = S.edit;
+        if (!S.edit) { S.brush = false; S.drag = null; }
+        G.sfx('pop');
+      }
+    });
+    if (S.edit) G.text('ARREDA', 1090, 226, { ctx: c, size: 22, color: C.cream, stroke: 'rgba(43,29,18,.7)', strokeWidth: 6 });
+  }
+
   /* ---------------------------------------------------------- shop, level 1 */
   function shopList() {
     var out = [], i, d;
@@ -858,11 +898,10 @@
   }
 
   /* ---------------------------------------------------------- shop, level 2 */
-  /* The tool column lives on the wall WITHOUT the door, so it swaps side between
-     rooms. Geometrically forced, and the weakest part of this layout: a button
-     that moves is a button you have to look for. */
+  /* Furnishing mode owns its overlay, so the toolbox can finally stay put in
+     both rooms instead of jumping sides around the door. */
   function drawShopL2(c) {
-    var tx = ROOMS[room()].door === 1 ? 104 : 1176;
+    var tx = 104;
     G.ui.round({
       id: 'cart', x: tx, y: 636, r: 64, color: S.shop ? C.leaf : C.tangerine,
       icon: function (cc, x, y, r) { cartGlyph(cc, x, y, r * 0.8); },
@@ -886,7 +925,7 @@
     if (!S.shop) return;
 
     var list = shopList(), i;
-    var px = ROOMS[room()].door === 1 ? 210 : 410;
+    var px = 210;
     A.panel(c, px, 150, 660, 540, { r: 28 });
     G.text('Il carretto', px + 330, 196, { size: 36, color: C.ink });
     for (i = 0; i < 6 && i < list.length; i++) {

@@ -10,8 +10,8 @@ in una giungla e si ferma in sette posti:
 | **Il Nido** | compri cespugli e nidi, producono frutti nel tempo, li raccogli | i gestionali/idle |
 | **Il Guardaroba** | vesti il tuo dino, e lui reagisce a quello che gli metti | i giochi di vestizione |
 | **La Casetta** | arredi due stanze coi frutti, e il dino ci abita davvero | i giochi di arredamento |
-| **Il Pulmino** | accompagni gli amici dove vogliono andare, e ti personalizzi il mezzo | Baby Panda School Bus |
-| **Il Girotondo** | fai il giro in un guscio d'uovo con quattro amici, e non si perde mai | le giostre |
+| **Il Pulmino** | scegli sulla mappa tra benzina, lavaggio e amici da accompagnare, poi personalizzi il mezzo | Baby Panda School Bus |
+| **Il Girotondo dei Suoni** | ascolti e ripeti sequenze con quattro strumenti, senza eliminazioni | giochi di ritmo e memoria |
 
 I frutti si guadagnano giocando e si spendono al Nido — e alla Casetta, che è il
 primo posto del gioco dove i frutti comprano qualcosa che **non** produce altri
@@ -168,9 +168,9 @@ src/01d-art-casa.js il guscio della stanza, la legge prospettica e i mobili
 src/23-guardaroba.js Il Guardaroba: casse, baule dei giocattoli, specchio,
                     ritratti, e il dino del fratello in sola lettura
 src/24-casetta.js   La Casetta: due stanze, il negozio, il dino che ci abita
-src/25-kart.js      Il Girotondo: anello analitico, giro senza sconfitta, amici
+src/25-kart.js      Il Girotondo dei Suoni: memoria, ritmo, quattro strumenti
 src/01e-art-bus.js  il pulmino di profilo, fermate, pompa, autolavaggio, sbarra
-src/26-bus.js       Il Pulmino: guida laterale, passeggeri, compitini, garage
+src/26-bus.js       Il Pulmino: mappa dall'alto, scelte, attività laterali, garage
 src/90-account.js   accesso, nuovo giocatore, segreto, impostazioni genitori
 src/99-boot.js      avvio, schermo intero, wake lock
 ```

@@ -169,10 +169,25 @@
     if (WALLS[wi].tint) {
       c.save(); c.fillStyle = WALLS[wi].tint; c.fillRect(0, 96, W, F - 96); c.restore();
     }
+    // shallow side walls and a picture rail: enough architecture to stop the
+    // wallpaper reading as a flat stage, without introducing a false ceiling
+    c.save();
+    c.fillStyle = 'rgba(72,45,22,.08)';
+    c.beginPath(); c.moveTo(0,96); c.lineTo(92,126); c.lineTo(92,F); c.lineTo(0,F); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(W,96); c.lineTo(W-92,126); c.lineTo(W-92,F); c.lineTo(W,F); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(78,48,24,.20)'; c.lineWidth = 5;
+    c.beginPath(); c.moveTo(0,122); c.lineTo(W,122); c.stroke();
+    c.restore();
 
     // floor: boards that really converge — width as a function of y
     c.fillStyle = vgrad(c, 'floor' + fi, F, B + 20, _shade(FLOORS[fi], -26), FLOORS[fi]);
     c.fillRect(0, F, W, 720 - F);
+    c.save();                                    // long seams converge to the room centre
+    c.strokeStyle = 'rgba(60,36,16,.13)'; c.lineWidth = 2;
+    for (i = -1; i <= 9; i++) {
+      c.beginPath(); c.moveTo(640, F); c.lineTo(i * 160, 720); c.stroke();
+    }
+    c.restore();
     c.save();
     c.strokeStyle = 'rgba(60,36,16,.30)';
     c.lineWidth = 3;
@@ -201,6 +216,11 @@
     c.globalAlpha = 0.16;
     _ell(c, 640, F + 120, 470, 470 * A.TILT * 1.5, 0);
     c.fillStyle = C.sun || '#ffd75e'; c.fill();
+    c.restore();
+
+    // a broad sunbeam gives furniture a common light direction
+    c.save(); c.globalAlpha = 0.055; c.fillStyle = '#fff6d0';
+    c.beginPath(); c.moveTo(890, 122); c.lineTo(1080, 122); c.lineTo(900, 720); c.lineTo(530, 720); c.closePath(); c.fill();
     c.restore();
 
     c.restore();

@@ -436,8 +436,9 @@ if (G.sceneOf('casetta')) {
   if (typeof G.casaOspiti !== 'function') fail('G.casaOspiti assente: la giungla accende la finestra con quella');
 
   const fruitsBefore = G.save.fruits;
-  // Salotto has its door on the right, so the tool column sits on the LEFT wall
-  tap(104, 636); pump(12);                        // open the cart
+  // Normal play is clean: enter the stable furnishing mode, whose cart opens
+  // on the same side in both rooms.
+  tap(1090, 160); pump(12);
   [[330, 350], [538, 350], [746, 350], [330, 566], [538, 566], [746, 566]].forEach(([cx, cy]) => {
     tap(cx, cy); pump(14);
   });
@@ -464,8 +465,7 @@ if (G.sceneOf('casetta')) {
   /* The door is the biggest risk in the two-room design: if it does not work,
      the child buys furniture for a room he can never see. Salotto has its door
      on the right at x=1204, Nanna on the left at x=76. */
-  tap(104, 636); pump(12);            // close the cart with its own button:
-                                      // a tap "outside" can land within hitTest slop of a cell
+  tap(1090, 160); pump(12);           // leave furnishing mode before using the door
   const roomBefore = G.save.casetta.room;
   tap(1204, 350); pump(50);
   if (G.save.casetta.room === roomBefore) fail('la porta non porta nella seconda stanza');
@@ -526,22 +526,28 @@ if (G.sceneOf('kart')) {
   G.go('kart'); pump(60);
   if (G.current !== 'kart') fail('non sono entrato nella Pista (sono in "' + G.current + '")');
 
-  // hammering the screen and doing nothing must BOTH finish the race
-  for (let i = 0; i < 900; i++) {
-    if (i % 7 === 0) tap(640, 500);
-    pump(1);
+  // Repeat the expected notes through the same action used by the four buttons.
+  if (typeof G.soundState !== 'function' || typeof G.soundChoose !== 'function') {
+    fail('il Girotondo dei Suoni non espone stato/input per il collaudo');
+  } else {
+    for (let i = 0; i < 2400 && (G.save.kart || {}).done < 4; i++) {
+      const q = G.soundState();
+      if ((q.phase === 'input' || q.phase === 'smallInput') && q.expected !== undefined) G.soundChoose(q.expected);
+      pump(1);
+    }
   }
   const k = G.save.kart || {};
   if (typeof k.done !== 'number') fail('G.save.kart.done non e un numero');
   if (G.save.fruits <= 0) fail('un giro non ha fruttato niente: bank() non ha incassato');
   if (G.save.fruits > 100000) fail('frutti fuori scala dalla Pista: ' + G.save.fruits);
 
-  // and now the same race without ever touching the screen: it must still end
+  // And now no touch at all: after a pause the friend demonstrates the expected
+  // note, so a child can never remain stuck waiting for an adult.
   G.go('giungla'); pump(30); G.go('kart'); pump(40);
   const doneBefore = (G.save.kart || {}).done || 0;
-  pump(2400);                          // 3 laps at 250 px/s is ~26s, plus 3s of lights
+  pump(3000);
   if (((G.save.kart || {}).done || 0) <= doneBefore) {
-    fail('senza toccare lo schermo la gara non finisce: il gioco deve completarsi da solo');
+    fail('senza toccare lo schermo la canzone non finisce: l aiuto deve completarla');
   }
 }
 
@@ -564,29 +570,35 @@ if (G.sceneOf('bus')) {
   G.go('bus'); pump(60);
   if (G.current !== 'bus') fail('non sono entrato nel Pulmino (sono in "' + G.current + '")');
 
-  /* Hold the finger down and drive the whole route: passengers must get on,
-     get off, and pay. The gate needs a tap, so tap now and then too. */
-  ELS.c.dispatch('pointerdown', pev(640, 500));
-  for (let i = 0; i < 2600; i++) {
-    if (i % 260 === 0) { tap(640, 460); ELS.c.dispatch('pointerdown', pev(640, 500)); }
-    pump(1);
+  /* Choose wash, passenger, fuel and destination in a non-suggested order:
+     the map must preserve every job and still complete the trip. */
+  if (typeof G.busChoose !== 'function' || typeof G.busState !== 'function') {
+    fail('il Pulmino non espone mappa/stato per il collaudo');
+  } else {
+    const go = (id) => {
+      G.busChoose(id);
+      for (let i = 0; i < 260 && G.busState().phase === 'travel'; i++) pump(1);
+      pump(8);
+    };
+    const work = () => {
+      ELS.c.dispatch('pointerdown', pev(640, 470)); pump(130);
+      ELS.c.dispatch('pointerup', pev(640, 470)); pump(100);
+    };
+    go('wash'); work();
+    if (!G.busState().washDone) fail('il lavaggio non completa la sua commissione');
+    go('radura'); tap(640, 470); pump(100);
+    if (G.busState().riders !== 1) fail('Pippi non sale alla Radura');
+    go('fuel'); work();
+    if (!G.busState().fuelDone) fail('il pieno non completa la sua commissione');
+    go('casetta'); tap(640, 470); pump(100);
+    if (G.busState().delivered !== 1) fail('Pippi non arriva alla Casetta');
+    go('depot'); pump(100);
+    if (G.busState().phase !== 'fine') fail('con tutte le commissioni fatte il viaggio non finisce al garage');
   }
-  ELS.c.dispatch('pointerup', pev(640, 500));
-  pump(40);
 
   /* And now the way a child actually plays: tap, tap, tap — never a clean hold.
      The bus used to dead-end beside the fruit pump, where every tap topped up
      the tank instead of setting off, and there was no way out of it. */
-  G.go('giungla'); pump(30); G.go('bus'); pump(50);
-  const beforeTap = (G.save.bus || {}).done || 0;
-  for (let i = 0; i < 3000; i++) {
-    if (i % 9 === 0) tap(640, 500);
-    pump(1);
-  }
-  if (((G.save.bus || {}).done || 0) <= beforeTap) {
-    fail('a tocchi ripetuti il viaggio non finisce mai: il pulmino si e incastrato');
-  }
-
   const b = G.save.bus || {};
   if (typeof b.done !== 'number') fail('G.save.bus.done non e un numero');
   if (G.save.fruits <= 0) fail('nessun passeggero consegnato in tutto il percorso');

@@ -367,6 +367,8 @@
   var own = null;          // cell -> colour slot | -1
   var lines = [];          // colour slot -> { cells, closed, glow }
   var active = -1, lastBad = -9, pulse = 0;
+  // The helper is a visual invitation, never an automatic solution.
+  var help = { t: 0, k: -1, from: null, to: null, reopen: false };
   var won = false, winT = 0, perfect = false, spoke = false;
   var bgGrad = null;
 
@@ -395,6 +397,8 @@
     lines = [];
     for (i = 0; i < pairs; i++) lines.push({ cells: [], closed: false, glow: 0 });
     active = -1; won = false; winT = 0; perfect = false; spoke = false;
+    nearT = 0;
+    help.t = 0; help.k = -1; help.from = null; help.to = null; help.reopen = false;
     rebuildOwn();
   }
 
@@ -440,8 +444,11 @@
      has to stretch one of them a bit further. A grid-filling solution always
      exists, so this can never be a dead end. */
   function drawGaps(c) {
-    if (won || G.level !== 2 || !own || !allClosed() || fullGrid()) return;
-    var i, r, cc, k = 0.30 + Math.sin(pulse * 5) * 0.22;
+    // In Grande the empty cells are part of the visual rule from the first
+    // frame. They remain quiet and friendly: joining pairs still feels like a
+    // win, while the little sun spots make the final stretch discoverable.
+    if (won || G.level !== 2 || !own || fullGrid()) return;
+    var i, r, cc, k = 0.11 + Math.sin(pulse * 4.2) * 0.055;
     c.save();
     for (i = 0; i < own.length; i++) {
       if (own[i] >= 0) continue;
@@ -505,6 +512,81 @@
   function fullGrid() {
     for (var i = 0; i < own.length; i++) if (own[i] < 0) return false;
     return true;
+  }
+
+  function neighboursOf(r, c, out) {
+    out.length = 0;
+    if (r > 0) out.push([r - 1, c]);
+    if (r < n - 1) out.push([r + 1, c]);
+    if (c > 0) out.push([r, c - 1]);
+    if (c < n - 1) out.push([r, c + 1]);
+    return out;
+  }
+
+  /* Pick one move that is actionable right now. For a finished pair, choosing
+     any line cell next to a hole means grabbing there reopens the thread and
+     the child can visibly stretch it. */
+  function findHelpMove() {
+    var i, k, L, j, cell, ns = [], q, rr, cc;
+    if (!own) return null;
+    if (allClosed() && !fullGrid()) {
+      for (k = 0; k < lines.length; k++) {
+        L = lines[k];
+        for (j = 0; j < L.cells.length; j++) {
+          cell = L.cells[j]; neighboursOf(cell[0], cell[1], ns);
+          for (q = 0; q < ns.length; q++) {
+            rr = ns[q][0]; cc = ns[q][1];
+            if (own[rr * n + cc] < 0 && dotOf[rr * n + cc] < 0) {
+              return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: true };
+            }
+          }
+        }
+      }
+    }
+    for (k = 0; k < lines.length; k++) {
+      L = lines[k];
+      if (L.closed || !L.cells.length) continue;
+      cell = L.cells[L.cells.length - 1]; neighboursOf(cell[0], cell[1], ns);
+      for (q = 0; q < ns.length; q++) {
+        rr = ns[q][0]; cc = ns[q][1];
+        if (!blockedFor(k, rr, cc)) return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: false };
+      }
+    }
+    // No thread started yet: point to the first endpoint and one legal next
+    // cell from its guaranteed construction path.
+    for (k = 0; k < lines.length; k++) {
+      if (lines[k].closed) continue;
+      cell = dots[k][0]; neighboursOf(cell[0], cell[1], ns);
+      for (q = 0; q < ns.length; q++) {
+        rr = ns[q][0]; cc = ns[q][1];
+        if (!blockedFor(k, rr, cc)) return { k: k, from: [cell[0], cell[1]], to: [rr, cc], reopen: false };
+      }
+    }
+    return null;
+  }
+
+  function showHelp() {
+    var move = findHelpMove();
+    if (!move) return;
+    help.t = 5.2; help.k = move.k; help.from = move.from; help.to = move.to; help.reopen = move.reopen;
+    G.sfx('chime');
+    G.say(move.reopen ? 'Tocca il filo e allungalo verso il buchino!' : 'Guarda: porta il filo qui!');
+  }
+
+  function drawHelp(c) {
+    if (help.t <= 0 || !help.from || !help.to || won) return;
+    var x1 = cxOf(help.from[1]), y1 = cyOf(help.from[0]);
+    var x2 = cxOf(help.to[1]), y2 = cyOf(help.to[0]);
+    var a = .52 + Math.sin(pulse * 8) * .18;
+    c.save();
+    c.globalAlpha = a;
+    c.strokeStyle = C.sun; c.lineWidth = 12; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    c.fillStyle = C.sun; c.beginPath(); c.arc(x2, y2, cs * .28, 0, 6.2832); c.fill();
+    c.strokeStyle = C.cream; c.lineWidth = 5; c.beginPath(); c.arc(x2, y2, cs * .38, 0, 6.2832); c.stroke();
+    c.fillStyle = C.ink; c.beginPath();
+    c.moveTo(x2 - 13, y2 - 8); c.lineTo(x2 + 17, y2); c.lineTo(x2 - 13, y2 + 8); c.closePath(); c.fill();
+    c.restore();
   }
 
   var nearT = 0;              // all pairs joined, but the grid is not full yet
@@ -699,24 +781,40 @@
     cc.restore();
   }
 
+  function iconHelp(cc, cx, cy, s) {
+    cc.save();
+    cc.fillStyle = '#fff6e0'; cc.strokeStyle = '#5b2c00'; cc.lineWidth = Math.max(3, s * .08);
+    cc.beginPath(); cc.arc(cx, cy - s * .08, s * .34, 0, 6.2832); cc.fill(); cc.stroke();
+    G.text('?', cx, cy + s * .20, { ctx: cc, size: s * .58, color: C.plum, weight: 900 });
+    cc.restore();
+  }
+
   function drawExample(c, x, y, w, h) {
-    var ax = x + w * .24, ay = y + h * .68, bx = x + w * .78, by = y + h * .34, mx = x + w * .52;
+    var cols = 5, rows = 3, cell = Math.min(24, (h - 22) / rows), sx = x + 24, sy = y + 10;
+    var r, cc, i, px, py, t = Math.floor(pulse * 5) % (cols * rows);
     c.save();
     c.fillStyle = 'rgba(255,246,224,.16)';
     G.roundRect(c, x, y, w, h, 20); c.fill();
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath();
-    c.moveTo(ax, ay); c.lineTo(mx, ay); c.lineTo(mx, by); c.lineTo(bx, by);
-    c.lineWidth = 24; c.strokeStyle = G.shade(C.mint, -66); c.stroke();
-    c.beginPath();
-    c.moveTo(ax, ay); c.lineTo(mx, ay); c.lineTo(mx, by); c.lineTo(bx, by);
-    c.lineWidth = 16; c.strokeStyle = C.mint; c.stroke();
-    c.fillStyle = C.mint;
-    c.beginPath(); c.arc(ax, ay, 20, 0, 6.2832); c.fill();
-    c.beginPath(); c.arc(bx, by, 20, 0, 6.2832); c.fill();
+    // Every square is occupied; the travelling highlight demonstrates that
+    // the goal is the whole board, not merely two matching dots.
+    for (r = 0; r < rows; r++) for (cc = 0; cc < cols; cc++) {
+      px = sx + cc * cell; py = sy + r * cell;
+      c.fillStyle = ((r + cc) & 1) ? '#e7d9b6' : '#f0e5c8';
+      G.roundRect(c, px, py, cell - 3, cell - 3, 5); c.fill();
+      if (r * cols + cc === t) {
+        c.fillStyle = C.sun; c.globalAlpha = .8;
+        G.roundRect(c, px + 2, py + 2, cell - 7, cell - 7, 4); c.fill(); c.globalAlpha = 1;
+      }
+    }
+    c.strokeStyle = C.mint; c.lineWidth = 7; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(sx + cell * .4, sy + cell * .4);
+    for (i = 1; i < cols * rows; i++) {
+      r = Math.floor(i / cols); cc = r % 2 ? cols - 1 - (i % cols) : i % cols;
+      c.lineTo(sx + cc * cell + cell * .4, sy + r * cell + cell * .4);
+    }
+    c.stroke();
     c.restore();
-    glyph(c, 'triangolo', ax, ay, 11, C.cream);
-    glyph(c, 'triangolo', bx, by, 11, C.cream);
+    G.text('tutta piena!', x + w * .73, y + h * .55, { size: 23, color: C.cream, align: 'center', stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
   }
 
   function drawSide(c) {
@@ -743,15 +841,20 @@
     G.text(doneCount + ' / ' + pairs, 1000, 366, { size: 38, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9 });
     if (won) return;
     G.ui.button({
-      x: 810, y: G.level === 2 ? 396 : 424, w: 380, h: 140, r: 30,
-      label: 'Ricomincia', color: C.leaf, fontSize: 40, iconSize: 60,
+      x: 810, y: G.level === 2 ? 396 : 424, w: 380, h: G.level === 2 ? 96 : 140, r: 26,
+      label: 'Ricomincia', color: C.leaf, fontSize: G.level === 2 ? 32 : 40, iconSize: G.level === 2 ? 52 : 60,
       icon: iconRestart,
       onTap: function () { resetLines(); }
     });
     if (G.level === 2) {
       G.ui.button({
-        x: 810, y: 552, w: 380, h: 140, r: 30,
-        label: 'Nuova', sub: 'griglia', color: C.blueberry, fontSize: 40, iconSize: 60,
+        x: 810, y: 500, w: 380, h: 96, r: 26,
+        label: 'Aiutami', sub: 'una mossa', color: C.plum, fontSize: 32, iconSize: 52,
+        icon: iconHelp, onTap: function () { showHelp(); }
+      });
+      G.ui.button({
+        x: 810, y: 604, w: 380, h: 96, r: 26,
+        label: 'Nuova', sub: 'griglia', color: C.blueberry, fontSize: 32, iconSize: 52,
         icon: iconGrid,
         onTap: function () { newGrid(); G.sfx('whoosh'); }
       });
@@ -843,6 +946,7 @@
       pulse += dt;
       for (i = 0; i < lines.length; i++) if (lines[i].glow > 0) lines[i].glow = Math.max(0, lines[i].glow - dt * 1.6);
       if (nearT > 0) nearT = Math.max(0, nearT - dt);
+      if (help.t > 0) help.t = Math.max(0, help.t - dt);
       if (won) {
         winT += dt;
         if (!spoke && winT > .8) {
@@ -874,6 +978,7 @@
         c.restore();
       }
       drawGaps(c);
+      drawHelp(c);
       drawSide(c);
       if (won && winT > .85) drawWinPanel(c);
     },

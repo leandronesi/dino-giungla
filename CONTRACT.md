@@ -269,8 +269,8 @@ Nido). Non sono buoni propositi nei commenti: sono asserzioni.
 | `src/22-nido.js` | `nido` | "Il Nido" — idle/tycoon |
 | `src/23-guardaroba.js` | `guardaroba` | "Il Guardaroba" — vestizione + casse |
 | `src/24-casetta.js` | `casetta` | "La Casetta" — due stanze da arredare coi frutti |
-| `src/25-kart.js` | `kart` | "Il Girotondo" — il giro che non si perde. NON è una gara |
-| `src/26-bus.js` | `bus` | "Il Pulmino" — il giro con le commissioni, di lato |
+| `src/25-kart.js` | `kart` | "Il Girotondo dei Suoni" — memoria e ritmo, senza eliminazioni |
+| `src/26-bus.js` | `bus` | "Il Pulmino" — mappa, priorità e brevi attività laterali |
 
 `src/90-boot.js` (già scritto) gestisce: scelta profilo, menu genitori, avvio.
 

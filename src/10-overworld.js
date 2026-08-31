@@ -137,7 +137,7 @@
   var STATIONS = [
     { id: 'conta', name: 'La Radura dei Numeri', go: 'Andiamo alla Radura dei Numeri!', branch: 'conta', at: 0.055, sway: 0.0 },
     { id: 'fili', name: 'I Fili Intrecciati', go: 'Andiamo ai Fili Intrecciati!', branch: 'fili', at: 0.200, sway: 1.9 },
-    { id: 'kart', name: 'Il Girotondo', go: 'Andiamo al Girotondo!', branch: 'kart', at: 0.345, sway: 4.4 },
+    { id: 'kart', name: 'Il Girotondo dei Suoni', go: 'Andiamo al Girotondo dei Suoni!', branch: 'kart', at: 0.345, sway: 4.4 },
     { id: 'bus', name: 'Il Pulmino', go: 'Andiamo col Pulmino!', branch: 'bus', at: 0.490, sway: 2.1 },
     { id: 'guardaroba', name: 'Il Guardaroba', go: 'Andiamo al Guardaroba!', branch: 'guardaroba', at: 0.635, sway: 5.5 },
     { id: 'nido', name: 'Il Nido', go: 'Andiamo al Nido!', branch: 'nido', at: 0.780, sway: 3.7 },
@@ -478,26 +478,23 @@
      itself — so the sign is a picture of what happens inside. */
   function iconKart(c, cx, cy, r) {
     c.save();
-    c.strokeStyle = '#c8a06a'; c.lineWidth = r * 0.40; c.lineCap = 'round';
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.72, r * 0.44, 0, 0, 7); c.stroke();
-    c.strokeStyle = 'rgba(90,67,38,.55)'; c.lineWidth = r * 0.06;
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.92, r * 0.64, 0, 0, 7); c.stroke();
-    c.beginPath(); c.ellipse(cx, cy + r * 0.06, r * 0.52, r * 0.24, 0, 0, 7); c.stroke();
-    var col = (G.account && G.account.color) || G.C.dino;
-    var kx = cx + r * 0.70, ky = cy + r * 0.08;
-    c.fillStyle = G.C.barkDark;
-    [[-r * 0.10, -r * 0.13], [-r * 0.10, r * 0.13], [r * 0.10, -r * 0.13], [r * 0.10, r * 0.13]].forEach(function (o) {
-      c.beginPath(); c.ellipse(kx + o[0], ky + o[1], r * 0.07, r * 0.05, 0, 0, 7); c.fill();
-    });
-    c.fillStyle = col; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.05;
-    c.beginPath(); c.ellipse(kx, ky, r * 0.19, r * 0.15, 0, 0, 7); c.fill(); c.stroke();
-    c.fillStyle = G.C.cream;                        // the little chequered flag
-    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.26, r * 0.20);
-    c.fillStyle = G.C.ink;
-    c.fillRect(cx - r * 0.86, cy - r * 0.62, r * 0.13, r * 0.10);
-    c.fillRect(cx - r * 0.73, cy - r * 0.52, r * 0.13, r * 0.10);
-    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.06;
-    c.beginPath(); c.moveTo(cx - r * 0.86, cy - r * 0.62); c.lineTo(cx - r * 0.86, cy - r * 0.16); c.stroke();
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    c.strokeStyle = G.C.ink; c.lineWidth = r * 0.07;
+    c.fillStyle = G.C.berry;
+    c.beginPath(); c.ellipse(cx, cy + r * 0.14, r * 0.43, r * 0.30, 0, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = G.C.cream;
+    c.beginPath(); c.ellipse(cx, cy - r * 0.08, r * 0.45, r * 0.20, 0, 0, 7); c.fill(); c.stroke();
+    c.strokeStyle = G.C.bark; c.lineWidth = r * 0.08;
+    c.beginPath();
+    c.moveTo(cx - r * 0.22, cy - r * 0.28); c.lineTo(cx - r * 0.40, cy - r * 0.65);
+    c.moveTo(cx + r * 0.22, cy - r * 0.28); c.lineTo(cx + r * 0.42, cy - r * 0.62);
+    c.stroke();
+    c.fillStyle = G.C.sun; c.strokeStyle = G.C.ink; c.lineWidth = r * 0.05;
+    c.beginPath(); c.moveTo(cx + r * 0.48, cy + r * 0.08);
+    c.quadraticCurveTo(cx + r * 0.50, cy - r * 0.35, cx + r * 0.72, cy - r * 0.42);
+    c.quadraticCurveTo(cx + r * 0.90, cy - r * 0.30, cx + r * 0.91, cy + r * 0.08);
+    c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.arc(cx + r * 0.70, cy + r * 0.13, r * 0.08, 0, 7); c.fill();
     c.restore();
   }
 
