@@ -126,10 +126,11 @@
       c.beginPath();
       G.roundRect(c, wx, wy, ww, wh, r * 0.4);
       _shape(c, '#cfe6f5', lw * 0.7);
-      if (o.riders && o.riders[i]) {                 // a passenger looking out
+      var passenger = i===2 && o.driverColor ? {color:o.driverColor} : o.riders && o.riders[i];
+      if (passenger) {                 // a passenger looking out
         c.save();
         G.roundRect(c, wx, wy, ww, wh, r * 0.4); c.clip();
-        c.fillStyle = o.riders[i].color || C.dino;
+        c.fillStyle = passenger.color || C.dino;
         c.beginPath(); c.arc(wx + ww * 0.5, wy + wh * 0.78, ww * 0.42, 0, TAU); c.fill();
         c.fillStyle = INK;
         c.beginPath(); c.arc(wx + ww * 0.34, wy + wh * 0.62, ww * 0.07, 0, TAU); c.fill();

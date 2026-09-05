@@ -581,12 +581,12 @@ if (G.sceneOf('kart')) {
   if (G.save.fruits > 100000) fail('frutti fuori scala dalla Pista: ' + G.save.fruits);
 
   // And now no touch at all: after a pause the friend demonstrates the expected
-  // note, so a child can never remain stuck waiting for an adult.
+  // note, without answering or earning rewards on behalf of the child.
   G.go('giungla'); pump(30); G.go('kart'); pump(40);
   const doneBefore = (G.save.kart || {}).done || 0;
   pump(3000);
-  if (((G.save.kart || {}).done || 0) <= doneBefore) {
-    fail('senza toccare lo schermo la canzone non finisce: l aiuto deve completarla');
+  if (((G.save.kart || {}).done || 0) !== doneBefore) {
+    fail('la musica assegna progressi senza una risposta del bambino');
   }
 }
 
@@ -620,8 +620,10 @@ if (G.sceneOf('bus')) {
       pump(8);
     };
     const work = () => {
-      ELS.c.dispatch('pointerdown', pev(640, 470)); pump(130);
-      ELS.c.dispatch('pointerup', pev(640, 470)); pump(100);
+      const x=G.busState().current==='fuel'?290:640;
+      ELS.c.dispatch('pointerdown', pev(x, 470));
+      if(G.busState().current==='wash')for(let scrub=0;scrub<10;scrub++){ELS.c.dispatch('pointermove',pev(scrub%2?480:880,470));pump(3);}
+      pump(190);ELS.c.dispatch('pointerup', pev(x,470));pump(100);
     };
     go('wash'); work();
     if (!G.busState().washDone) fail('il lavaggio non completa la sua commissione');

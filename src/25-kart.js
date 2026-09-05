@@ -46,7 +46,7 @@
       if (v === last) v = (v + 1) % FRIENDS.length;
       S.sequence.push(v); last = v;
     }
-    S.phase = 'play'; S.t = 0; S.phaseT = 0; S.playAt = .55; S.playIndex = 0;
+    S.phase = 'play'; S.t = 0; S.phaseT = 0; S.playAt = 1.5; S.playIndex = 0;
     S.inputIndex = 0; S.active = -1; S.activeT = 0; S.mistake = 0; S.idle = 0;
     G.say(big() ? 'Ascolta tutta la sequenza!' : 'Ascolta e ripeti!');
   }
@@ -59,7 +59,7 @@
   function playNote(i) {
     var f = FRIENDS[i];
     S.active = i; S.activeT = 0;
-    G.sfx(f.sfx); G.say(f.say);
+    G.sfx(f.sfx);
     G.fx.ring(180 + i * 285, 355, f.color, 68);
   }
   function completeRound() {
@@ -90,9 +90,15 @@
     if (S.inputIndex >= S.sequence.length) completeRound();
     else if (!big()) { S.phase = 'smallNext'; S.t = 0; }
   }
-  function autoPlayExpected() {
-    if (S.phase === 'input' || S.phase === 'smallInput') choose(S.sequence[S.inputIndex]);
+  function demonstrateExpected() {
+    if (S.phase !== 'input' && S.phase !== 'smallInput') return;
+    S.idle=0;playNote(S.sequence[S.inputIndex]);
   }
+  function replay(){
+    if(S.phase!=='input'&&S.phase!=='smallInput')return;
+    G.hush();S.playIndex=0;S.inputIndex=0;S.phase='play';S.phaseT=0;S.playAt=.6;S.idle=0;
+  }
+  G.soundReplay=replay;
   G.soundState = function () {
     return {
       phase: S.phase, expected: S.sequence[S.inputIndex], round: S.round,
@@ -127,16 +133,17 @@
     var x = 180 + i * 285, f = FRIENDS[i], pose = S.phase === 'festa' ? 'happy' : (S.active === i ? 'happy' : 'idle');
     if (A && A.dino) {
       var gear = (typeof G.look === 'function') ? G.look(G.save, lookBuffers[i]) : null;
-      A.dino(c, x, 320, 112, { facing: 1, pose: pose, t: G.t + i * .2, color: f.color, gear: gear });
+      A.dino(c, x, 374, 152, { facing: 1, pose: pose, t: G.t + i * .2, color: f.color, gear: gear });
     }
-    c.save(); c.globalAlpha = S.active === i ? .95 : .65; c.fillStyle = f.color; c.beginPath(); c.ellipse(x, 370, 112, 30, 0, 0, 7); c.fill(); c.restore();
-    if (S.active === i) { c.save(); c.strokeStyle = C.sun; c.lineWidth = 8; c.beginPath(); c.arc(x, 355, 84 + Math.sin(G.t * 8) * 6, 0, 7); c.stroke(); c.restore(); }
+    c.save(); c.globalAlpha = S.active === i ? .95 : .65; c.fillStyle = f.color; c.beginPath(); c.ellipse(x, 376, 106, 20, 0, 0, 7); c.fill(); c.restore();
+    if (S.active === i) { c.save(); c.strokeStyle = C.sun; c.lineWidth = 8; c.beginPath(); c.arc(x, 310, 93 + Math.sin(G.t * 8) * 6, 0, 7); c.stroke(); c.restore(); }
   }
   function drawButtons(c) {
-    var y = 472, i;
+    var y = 466, i;
     for (i = 0; i < FRIENDS.length; i++) {
-      G.ui.button({ x: 70 + i * 285, y: y, w: 220, h: 148, r: 28, color: FRIENDS[i].color,
-        label: '', icon: ICONS[i], iconSize: 70,
+      G.ui.button({ id:'instrument-'+i,x: 60 + i * 285, y: y, w: 240, h: 166, r: 30, color: FRIENDS[i].color,
+        disabled:S.phase!=='input'&&S.phase!=='smallInput',
+        label: '', icon: ICONS[i], iconSize: 106,
         onTap: (function (k) { return function () { choose(k); }; })(i) });
       G.text(FRIENDS[i].name, 180 + i * 285, 596, {
         ctx: c, size: 23, color: C.cream, stroke: 'rgba(43,29,18,.72)', strokeWidth: 6
@@ -155,7 +162,7 @@
   }
   function drawRhythm(c) {
     var n = S.sequence.length, done = (S.phase === 'input' || S.phase === 'smallInput') ? S.inputIndex : S.playIndex;
-    var label = (S.phase === 'input' || S.phase === 'smallInput') ? ('Tocca ' + done + ' / ' + n) : ('Ascolta ' + n + ' note');
+    var label = (S.phase === 'input' || S.phase === 'smallInput') ? ('Tocca ' + done + ' / ' + n) : ('Ascolta ' + n + (n===1?' nota':' note'));
     var left = 380, width = 520, i, x;
     c.save(); c.fillStyle = 'rgba(15,43,51,.72)'; G.roundRect(c, left - 28, 392, width + 56, 58, 24); c.fill();
     G.text(label, left + width / 2, 409, { ctx: c, size: 23, color: C.cream, stroke: C.ink, strokeWidth: 5 });
@@ -163,7 +170,7 @@
       x = left + (i + .5) * width / n;
       c.fillStyle = i < done ? C.leafLight : (i === done ? C.sun : 'rgba(255,245,220,.35)');
       c.beginPath(); c.arc(x, 432, 9, 0, 7); c.fill();
-      c.strokeStyle = FRIENDS[S.sequence[i]].color; c.lineWidth = 3; c.stroke();
+      c.strokeStyle = i<done || !big() ? FRIENDS[S.sequence[i]].color : C.cream; c.lineWidth = 3; c.stroke();
     }
     if (S.phase === 'play' && S.playAt > 0) {
       c.fillStyle = C.sun; c.globalAlpha = .78; G.roundRect(c, left, 444, width * G.clamp(S.phaseT / S.playAt, 0, 1), 5, 3); c.fill();
@@ -171,15 +178,21 @@
     c.restore();
   }
   function drawScene(c) {
-    if (A && A.jungle) A.jungle(c, G.t, { dim: .16 });
-    else { c.fillStyle = C.sky; c.fillRect(0, 0, W, H); }
-    c.save(); c.fillStyle = 'rgba(30,90,50,.35)'; c.beginPath(); c.ellipse(640, 395, 560, 150, 0, 0, 7); c.fill(); c.restore();
-    G.text('Girotondo dei Suoni', 640, 132, { size: 42, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9 });
+    c.fillStyle='#bfe3da';c.fillRect(0,0,W,H);
+    c.fillStyle='#50866a';c.beginPath();c.ellipse(60,260,250,310,-.3,0,7);c.ellipse(1220,260,250,310,.3,0,7);c.fill();
+    c.fillStyle='#8fbd8a';c.fillRect(0,370,W,350);
+    c.fillStyle='#73573d';G.roundRect(c,32,359,1216,301,30);c.fill();
+    c.fillStyle='#d7b982';G.roundRect(c,32,348,1216,290,30);c.fill();
+    c.strokeStyle='#bf9d68';c.lineWidth=3;for(var plank=0;plank<8;plank++){c.beginPath();c.moveTo(60,380+plank*35);c.lineTo(1220,380+plank*35);c.stroke();}
+    c.strokeStyle='#526c54';c.lineWidth=3;c.beginPath();c.moveTo(24,106);c.quadraticCurveTo(640,205,1256,106);c.stroke();
+    for(var flag=0;flag<11;flag++){var fx=60+flag*116,fy=110+Math.sin(flag/10*Math.PI)*45;c.fillStyle=FRIENDS[flag%4].color;c.beginPath();c.moveTo(fx,fy);c.lineTo(fx+38,fy+5);c.lineTo(fx+18,fy+39);c.fill();}
+    G.text('Girotondo dei Suoni', 640, 122, { size: 42, color: C.cream, stroke: 'rgba(12,40,25,.7)', strokeWidth: 9 });
     var instruction = S.phase === 'festa' ? 'La nostra canzone!' : (S.phase === 'input' || S.phase === 'smallInput' ? 'Tocca gli strumenti nello stesso ordine' : 'Ascolta...');
-    G.text(instruction, 640, 184, { size: 25, color: C.cream, stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
+    G.text(instruction, 640, 194, { size: 25, color: C.cream, stroke: 'rgba(12,40,25,.65)', strokeWidth: 6 });
     for (var i = 0; i < FRIENDS.length; i++) drawFriend(c, i);
     drawRhythm(c);
     if (S.phase === 'festa') drawParty(c); else drawButtons(c);
+    if(S.phase==='input'||S.phase==='smallInput')G.ui.button({id:'music-replay',x:1020,y:108,w:220,h:96,r:20,color:C.water,label:'Riascolta',fontSize:26,onTap:replay});
     if (S.phase === 'buffo') G.text('Riproviamo insieme!', 640, 690, { size: 28, color: C.sun, stroke: C.ink, strokeWidth: 6 });
   }
 
@@ -190,7 +203,7 @@
       var first = !G.save.seen.kart; G.save.seen.kart = true; G.saveNow();
       if (first) G.say('Ascolta gli amici e ripeti la musica!');
     },
-    exit: function () { S.active = -1; },
+    exit: function () { S.active = -1; G.hush(); },
     update: function (dt) {
       S.songT += dt; S.t += dt; S.phaseT += dt; S.activeT += dt;
       if (S.active >= 0 && S.activeT > .42) S.active = -1;
@@ -200,7 +213,7 @@
             playNote(S.sequence[S.playIndex++]);
             S.phaseT = 0;
             if (big()) S.playAt = .76;
-            else S.phase = 'smallInput';
+            else { S.phase = 'smallInput'; S.idle=0; }
           } else {
             S.phase = big() ? 'input' : 'pausaInput'; S.t = 0; S.idle = 0;
             if (big()) G.say('Ora tocca a te!');
@@ -209,15 +222,15 @@
       } else if (S.phase === 'smallNext') {
         if (S.t > .32) { S.phase = 'play'; S.t = 0; S.phaseT = 0; S.playAt = .12; }
       } else if (S.phase === 'smallInput') {
-        S.idle += dt; if (S.idle > 3) autoPlayExpected();
+        S.idle += dt; if (S.idle > 5) demonstrateExpected();
       } else if (S.phase === 'pausaInput') {
         S.phase = 'input'; S.t = 0; S.idle = 0; G.say('Adesso ripeti la sequenza!');
       } else if (S.phase === 'input') {
-        S.idle += dt; if (S.idle > 5) autoPlayExpected();
+        S.idle += dt; if (S.idle > 9) demonstrateExpected();
       } else if (S.phase === 'buffo') {
         if (S.t > .9) {
-          S.t = 0; S.phaseT = 0; S.playIndex = 0; S.inputIndex = 0; S.idle = 0;
-          if (big()) { S.phase = 'play'; S.playAt = .1; } else { S.phase = 'smallInput'; playNote(S.sequence[0]); }
+          S.t = 0; S.phaseT = 0; S.idle = 0;
+          if (big()) { S.playIndex=0;S.inputIndex=0;S.phase = 'play'; S.playAt = .7; } else { S.phase = 'smallInput'; playNote(S.sequence[S.inputIndex]); }
         }
       } else if (S.phase === 'pausa') {
         if (S.t > 1.1) nextRound();
