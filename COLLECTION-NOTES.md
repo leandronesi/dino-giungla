@@ -48,7 +48,7 @@ commit, push e workflow GitHub Pages.
 
 ## Secondo passaggio
 
-Run parte pi? veloce e accelera gradualmente per 150 secondi (limiti distinti
+Run parte pi? veloce e accelera gradualmente per 55 secondi (limiti distinti
 per et?); verificati swipe destra/sinistra/su/gi? con eventi touch Chrome.
 Kart usa frecce sinistra/destra e spazio; blur e cambio scena rilasciano lo sterzo.
 La musica non completa pi? le risposte in automatico e la voce non copre
