@@ -1,7 +1,7 @@
 'use strict';
 const vm=require('vm'),fs=require('fs'),path=require('path'),assert=require('assert');
 async function main(){
-  const games=['dino-giungla','dino-kart','dino-officina','dino-stazione','dino-run'];
+  const games=['dino-giungla','dino-kart','dino-officina','dino-stazione','dino-run','dino-mario'];
   for(const game of games){
     const keys=games.map(g=>g+'-old').concat(game+'-__VERSION__','unrelated-site'),deleted=[],events={};
     let work;
@@ -10,6 +10,6 @@ async function main(){
     events.activate({waitUntil:p=>work=p});await work;
     assert.deepEqual(deleted,[game+'-old'],game+' removed another application cache');
   }
-  console.log('PASS: all five service workers preserve sibling and unrelated caches');
+  console.log('PASS: all six service workers preserve sibling and unrelated caches');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

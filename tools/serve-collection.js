@@ -1,7 +1,7 @@
 'use strict';
 const http=require('http'),fs=require('fs'),path=require('path');
 const root=path.resolve(__dirname,'../..');
-const allowed=new Set(['dino-giungla','dino-kart','dino-officina','dino-stazione','dino-run']);
+const allowed=new Set(['dino-giungla','dino-kart','dino-officina','dino-stazione','dino-run','dino-mario']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
 http.createServer((req,res)=>{
   let rel;try{rel=decodeURIComponent(req.url.split('?')[0]);}catch{res.writeHead(400).end();return;}
