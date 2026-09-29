@@ -53,9 +53,10 @@ async function main(){
       await run("G.officinaTest();for(let i=0;i<150;i++)__scenes.officina.update(1/60)");assert.equal(await run('G.officinaState().state'),'win');
     }
     if(game==='dino-stazione'){
-      await run("G.go('stazione',{level:7})");await delay(700);await run('G.stationTapTrain()');await shot(game+'-switches');
-      const result=await run(`(()=>{let levels=[];for(let level=1;level<=12;level++){__scenes.stazione.enter({level});for(let frame=0;frame<30000&&!G.stationState().fine;frame++){const s=G.stationState();s.occupied.forEach((t,i)=>{if(t&&t.ready)G.stationDepart(i);});s.actives.forEach(t=>{if(t.phase==='waiting')G.stationTapTrain(t.id);if(t.phase==='choose'||t.phase==='choose-route'){G.stationTapTrain(t.id);const state=G.stationState();if((t.target===0?0:1)!==state.switches[0])G.stationToggle(0);if(t.target>0&&t.target-1!==state.switches[1])G.stationToggle(1);G.stationLaunch();}});__scenes.stazione.update(1/60);}const s=G.stationState();levels.push({level,fine:s.fine,arrived:s.arrived,total:s.total});}return levels;})()`);
-      assert(result.every(s=>s.fine&&s.arrived===s.total),JSON.stringify(result));console.log('stazione: all 12 levels solved through actual levers');
+      await run("G.go('stazione',{level:2})");await delay(700);await run('G.traffic.start();G.traffic.state().spawnT=0');await delay(6000);await shot(game+'-switches');
+      const sw=await run('G.traffic.state().sw.S1');await tap(330,230);assert.equal(await run('G.traffic.state().sw.S1'),1-sw,'real tap flips the switch');
+      const result=await run('(()=>{const T=G.traffic;T.quiet(true);let levels=[];for(let li=0;li<T.MAPS.length;li++){T.reset(li,1);T.start();for(let f=0;f<60*600&&T.state().phase==="play";f++)T.step();levels.push(T.state().phase);}T.quiet(false);return levels;})()');
+      assert(result.every(p=>p==="clear"),'Piccolo passive runs must always finish: '+result);console.log('stazione: real tap on a switch, every map runs to the end');
     }
     if(game==='dino-run'){
       await run("G.go('run')");await delay(700);await run('G.runStart()');await delay(3000);await shot(game+'-running');
