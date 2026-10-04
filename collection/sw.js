@@ -1,5 +1,5 @@
 /* Collection shell only. Each game retains its worker and its saves. */
-var CACHE = 'dino-collection-3b54c523f2';
+var CACHE = 'dino-collection-c985b1ba5f';
 var ASSETS = ['./', './index.html', './app.js', '../manifest.webmanifest', '../icon.svg', '../icon-180.png', '../icon-192.png', '../icon-512.png', '../icon-maskable-512.png', '../test/collection-frames/dino-kart-race.png', '../test/collection-frames/dino-officina-workbench.png', '../test/collection-frames/dino-stazione-switches.png', '../test/collection-frames/dino-run-running.png', '../test/collection-frames/dino-mario-play.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
@@ -20,6 +20,16 @@ self.addEventListener('fetch', function (e) {
       if (response.ok) await cache.put(e.request, response.clone());
       return response.ok ? response : (cached || response);
     });
+    // Refresh the page and its script before returning stale installation controls.
+    if (e.request.mode === 'navigate' || url.pathname.endsWith('/app.js')) {
+      if (cached) {
+        var timer;
+        var fallback = new Promise(function (resolve) { timer = setTimeout(function () { resolve(cached); }, 2500); });
+        e.waitUntil(network.catch(function () {}));
+        return Promise.race([network.catch(function () { return cached; }), fallback]).finally(function () { clearTimeout(timer); });
+      }
+      return network.catch(function (error) { if (cached) return cached; throw error; });
+    }
     if (cached) { e.waitUntil(network.catch(function () {})); return cached; }
     return network;
   }));

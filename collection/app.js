@@ -5,7 +5,7 @@
   var catalog = document.getElementById('catalog'), player = document.getElementById('player');
   var status = document.getElementById('offline-status'), retry = document.getElementById('retry-download');
   var install = document.getElementById('install-app');
-  var installHelp = document.getElementById('install-help');
+  var installOptions = document.getElementById('install-options');
   var frame, lastCard, promptEvent, preparing = false, recheck = false;
   var watched = new WeakSet();
   var assets = ['', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
@@ -64,28 +64,24 @@
     e.preventDefault(); promptEvent = e;
   });
   function showInstallHelp() {
-    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    document.getElementById('install-help-body').textContent = ios
-      ? 'Apri questa pagina in Safari. Tocca Condividi, poi «Aggiungi alla schermata Home» e conferma con «Aggiungi». Una sola icona apre tutti e sei i giochi.'
-      : 'La richiesta diretta di installazione non è disponibile in questo momento. Apri questa pagina in una scheda normale di Chrome: dal menu ⋮ scegli «Aggiungi a schermata Home», poi «Installa» se disponibile. Una sola icona apre tutti e sei i giochi.';
-    installHelp.hidden = false;
-    install.setAttribute('aria-expanded', 'true');
+    installOptions.open = true;
   }
   function closeInstallHelp() {
-    installHelp.hidden = true; install.setAttribute('aria-expanded', 'false');
+    installOptions.open = false;
   }
   document.getElementById('close-install-help').addEventListener('click', function () { closeInstallHelp(); install.focus(); });
-  install.addEventListener('click', async function () {
-    if (!promptEvent) { showInstallHelp(); return; }
+  install.addEventListener('click', async function (e) {
+    // Without a native prompt, the HTML summary opens the instructions itself.
+    if (!promptEvent) return;
+    e.preventDefault();
     var event = promptEvent; promptEvent = null;
-    closeInstallHelp(); install.disabled = true;
+    showInstallHelp();
     try {
       await event.prompt();
       await event.userChoice;
     } catch (e) { showInstallHelp(); }
-    finally { install.disabled = false; }
   });
-  window.addEventListener('appinstalled', function () { promptEvent = null; install.disabled = false; });
+  window.addEventListener('appinstalled', function () { promptEvent = null; });
   function active(registration) {
     var worker = registration.installing || registration.waiting || registration.active;
     if (!worker) return Promise.reject(new Error('Download non disponibile'));

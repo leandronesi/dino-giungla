@@ -13,9 +13,16 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 let server, chrome, ws;
 let blockedAsset = '/dino-mario/icon-maskable-512.png';
 let updatingKart = false;
+let missingCollectionScript = false;
+let stalledCollectionScript = false;
 async function main() {
   assert(fs.existsSync(path.join(root, 'dino-giungla/collection/index.html')), 'Missing installable collection entry');
   server = http.createServer((req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (missingCollectionScript && req.url === '/dino-giungla/collection/app.js') { res.writeHead(503).end('Script unavailable'); return; }
+    if (stalledCollectionScript && req.url === '/dino-giungla/collection/app.js') {
+      setTimeout(() => res.end(fs.readFileSync(path.join(root, 'dino-giungla/collection/app.js'))), 6500); return;
+    }
     if (req.url === blockedAsset) { res.writeHead(503).end('Temporary download failure'); return; }
     let file = path.resolve(root, '.' + decodeURIComponent(req.url.split('?')[0]));
     if (!file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
@@ -47,11 +54,34 @@ async function main() {
   const call = (method, params = {}) => new Promise((resolve, reject) => { const id = ++seq; pending.set(id, { resolve, reject }); ws.send(JSON.stringify({ id, method, params })); });
   async function run(expression) { const r = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); assert(!r.exceptionDetails, JSON.stringify(r.exceptionDetails)); return r.result.value; }
   async function until(expression, label) { for (let i = 0; i < 200; i++) { if (await run(expression)) return; await delay(100); } assert.fail(label); }
+  async function reloadPage() {
+    const previous = await run('performance.timeOrigin');
+    await call('Page.reload');
+    await until(`performance.timeOrigin !== ${previous} && document.readyState === 'complete'`, 'Reload did not finish');
+  }
   await call('Page.enable'); await call('Runtime.enable');
   await call('Page.addScriptToEvaluateOnNewDocument', { source: 'window.AudioContext=window.webkitAudioContext=undefined;try{speechSynthesis.speak=function(){};}catch(e){}' });
   // Reproduce a mobile browser that never delivers the native install event to the app.
   await call('Page.addScriptToEvaluateOnNewDocument', { source: "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();e.stopImmediatePropagation();});" });
   await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  async function tapInstall() {
+    await run("document.querySelector('#install-app').scrollIntoView({block:'center'})");
+    const point = await run("(()=>{const r=document.querySelector('#install-app').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()");
+    await call('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await call('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await delay(400);
+  }
+  if (!published) {
+    // A visible installation control must respond even before its script loads.
+    missingCollectionScript = true;
+    await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await call('Page.navigate', { url: origin + '/dino-giungla/collection/' });
+    await until("document.readyState === 'complete'", 'Script failure page did not load');
+    await tapInstall();
+    assert(await run("document.querySelector('#install-help').getBoundingClientRect().height > 0"), 'Installation tap does nothing when app.js is unavailable');
+    missingCollectionScript = false;
+    await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+  }
   // A profile created at the original game URL must be available inside the collection.
   await call('Page.navigate', { url: origin + '/dino-run/' });
   await until('!!window.G', 'Run failed to start');
@@ -61,11 +91,11 @@ async function main() {
   await until("document.readyState === 'complete'", 'Collection scripts did not finish loading');
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.equal(await run("document.querySelector('#install-app').hidden"), false, 'Install action disappeared without a native event');
-  await run("document.querySelector('#install-app').click()");
-  assert.equal(await run("document.querySelector('#install-help').hidden"), false, 'Missing install event left a dead button');
+  await tapInstall();
+  assert(await run("document.querySelector('#install-help').getBoundingClientRect().height > 0"), 'Missing install event left a dead button');
   assert(await run("document.querySelector('#install-help-body').textContent.includes('schermata Home')"), 'Missing manual install instructions');
   await run("document.querySelector('#close-install-help').click()");
-  assert.equal(await run("document.querySelector('#install-help').hidden"), true);
+  assert.equal(await run("document.querySelector('#install-options').open"), false);
   await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   if (!published) {
     await until("document.querySelector('#offline-status').dataset.state === 'error'", 'Incomplete download was reported as ready');
@@ -109,7 +139,7 @@ async function main() {
   await home();
   await call('Network.enable');
   await call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
-  await call('Page.reload', { ignoreCache: true });
+  await reloadPage();
   await until("document.querySelector('#offline-status')?.dataset.state === 'ready'", 'Collection failed to reload offline');
   for (const game of games) { await open(game); await home(); console.log('PASS offline ' + game); }
   await run('window.scrollTo(0,0)');
@@ -121,6 +151,37 @@ async function main() {
   assert(await run("document.querySelector('#back-to-games').getBoundingClientRect().height >= 44"));
   const gamePicture = await call('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(path.join(os.tmpdir(), 'dino-collection-player.png'), Buffer.from(gamePicture.data, 'base64'));
+  if (!published) {
+    await home();
+    // Reproduce the original cached handler: no native event means an immediate return.
+    const staleScript = "window.staleInstallScript=true;document.getElementById('install-app').addEventListener('click',function(){return;});";
+    async function seedStaleScript() {
+      await run(`caches.keys().then(keys=>caches.open(keys.find(k=>k.startsWith('dino-collection-')))).then(c=>c.put(new URL('app.js',location.href),new Response(${JSON.stringify(staleScript)},{headers:{'Content-Type':'text/javascript'}})))`);
+    }
+    await seedStaleScript();
+    await call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    await reloadPage();
+    await until("document.querySelector('#offline-status')?.dataset.state === 'ready'", 'Online reload kept stale script');
+    assert.equal(await run('!!window.staleInstallScript'), false, 'Online reload served obsolete installation code');
+    await seedStaleScript();
+    missingCollectionScript = true;
+    await call('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
+    await reloadPage();
+    await until("document.readyState === 'complete'", 'Stale cached page did not load');
+    assert.equal(await run('window.staleInstallScript'), true, 'Stale script fixture was not served');
+    await tapInstall();
+    assert.equal(await run("document.querySelector('#install-options').open"), true, 'Old cached handler blocked installation instructions');
+    await run("document.querySelector('#close-install-help').click()");
+    assert.equal(await run("document.querySelector('#install-options').open"), false, 'Close depends on the current app script');
+    missingCollectionScript = false; stalledCollectionScript = true;
+    await call('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+    const launchStarted = Date.now();
+    await reloadPage();
+    await until("document.readyState === 'complete'", 'Stalled network blocked cached launch');
+    assert(Date.now() - launchStarted < 5000, 'Cached launch waited for the stalled network');
+    assert.equal(await run('window.staleInstallScript'), true, 'Timeout did not fall back to cached script');
+    console.log('PASS real touch with missing script and obsolete cached install handler; online refresh repairs cache');
+  }
   console.log('PASS ' + (published ? 'GitHub Pages' : 'local + interrupted download and retry') + ': single installable app, original account, pending save, offline reload and all six games. Screenshots: ' + os.tmpdir());
 }
 main().catch(e => { console.error(e); process.exitCode = 1; }).finally(() => { if (ws) ws.close(); if (chrome) chrome.kill(); if (server) server.close(); });

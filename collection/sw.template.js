@@ -20,6 +20,16 @@ self.addEventListener('fetch', function (e) {
       if (response.ok) await cache.put(e.request, response.clone());
       return response.ok ? response : (cached || response);
     });
+    // Refresh the page and its script before returning stale installation controls.
+    if (e.request.mode === 'navigate' || url.pathname.endsWith('/app.js')) {
+      if (cached) {
+        var timer;
+        var fallback = new Promise(function (resolve) { timer = setTimeout(function () { resolve(cached); }, 2500); });
+        e.waitUntil(network.catch(function () {}));
+        return Promise.race([network.catch(function () { return cached; }), fallback]).finally(function () { clearTimeout(timer); });
+      }
+      return network.catch(function (error) { if (cached) return cached; throw error; });
+    }
     if (cached) { e.waitUntil(network.catch(function () {})); return cached; }
     return network;
   }));

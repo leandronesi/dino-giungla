@@ -19,16 +19,22 @@
 <main id="catalog">
 <header><h1>Il mondo dei Dino</h1><p>Una nuova avventura. Quale scegli?</p>
 <div class="setup">
-<button id="install-app" aria-controls="install-help" aria-expanded="false">Installa tutti i giochi</button>
+<details id="install-options">
+<summary id="install-app" style="display:block;list-style:none;font-size:18px;border-radius:14px;padding:14px 20px;background:#2e8254;color:white;cursor:pointer;min-height:48px">Installa tutti i giochi</summary>
+<section id="install-help" aria-labelledby="install-help-title" style="margin-top:16px;padding:20px;background:#fff8e5;border:2px solid #214d3e;border-radius:18px;max-width:680px">
+<h2 id="install-help-title">Una sola icona per tutti e sei i giochi</h2>
+<div id="install-help-body" style="font-size:18px;line-height:1.5">
+<p style="font-size:18px;line-height:1.5"><strong>Chrome su Android:</strong> apri il menu ⋮ e scegli «Aggiungi a schermata Home».</p>
+<p style="font-size:18px;line-height:1.5;margin-top:12px"><strong>Se dice «Questa app è già installata»:</strong> tocca «Fai clic per aprire l’app». Se apre ancora un singolo gioco, torna qui e scegli «Crea scorciatoia»: avrai sulla Home il collegamento a tutti e sei i giochi.</p>
+<p style="font-size:18px;line-height:1.5;margin-top:12px"><strong>iPhone:</strong> apri questa pagina in Safari, tocca Condividi e «Aggiungi alla schermata Home».</p>
+</div>
+<button id="close-install-help" style="margin-top:12px" onclick="this.closest('details').open=false">Ho capito</button>
+</section>
+</details>
 <p id="offline-status" role="status" aria-live="polite" data-state="loading">Preparo i sei giochi per giocare anche senza Internet…</p>
 <button id="retry-download" hidden>Riprova il download</button>
 </div>
-<section id="install-help" aria-labelledby="install-help-title" hidden style="margin-top:16px;padding:20px;background:#fff8e5;border:2px solid #214d3e;border-radius:18px">
-<h2 id="install-help-title">Metti la collection sulla schermata Home</h2>
-<p id="install-help-body" style="font-size:18px;line-height:1.5"></p>
-<p style="font-size:17px;line-height:1.5;margin:12px 0">Se Chrome dice «già installata» e hai l’icona Dino Giungla, aprila con Internet acceso: ora porta alla collection. Il nome dell’icona può aggiornarsi in seguito.</p>
-<button id="close-install-help">Ho capito</button>
-</section></header>
+</header>
 <nav aria-label="Scegli un gioco">
 <a class="card" data-game="dino-giungla" href="/dino-giungla/"><img src="../icon.svg" alt=""><section><h2>Dino Giungla</h2><p>Conta, scopri e prenditi cura del tuo piccolo mondo.</p><b>Esplora →</b></section></a>
 <a class="card" data-game="dino-kart" href="/dino-kart/"><img src="../test/collection-frames/dino-kart-race.png" alt=""><section><h2>Dino Kart</h2><p>Cinque amici, ognuno diverso. Tutti in pista!</p><b>In pista →</b></section></a>
