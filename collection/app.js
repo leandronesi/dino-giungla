@@ -5,6 +5,7 @@
   var catalog = document.getElementById('catalog'), player = document.getElementById('player');
   var status = document.getElementById('offline-status'), retry = document.getElementById('retry-download');
   var install = document.getElementById('install-app');
+  var installHelp = document.getElementById('install-help');
   var frame, lastCard, promptEvent, preparing = false, recheck = false;
   var watched = new WeakSet();
   var assets = ['', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
@@ -60,14 +61,31 @@
   window.addEventListener('hashchange', showGame);
   window.addEventListener('pagehide', saveGame);
   window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault(); promptEvent = e; install.hidden = false;
+    e.preventDefault(); promptEvent = e;
   });
-  install.addEventListener('click', function () {
-    if (!promptEvent) return;
-    var event = promptEvent; promptEvent = null; install.hidden = true;
-    event.prompt().catch(function () {});
+  function showInstallHelp() {
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    document.getElementById('install-help-body').textContent = ios
+      ? 'Apri questa pagina in Safari. Tocca Condividi, poi «Aggiungi alla schermata Home» e conferma con «Aggiungi». Una sola icona apre tutti e sei i giochi.'
+      : 'La richiesta diretta di installazione non è disponibile in questo momento. Apri questa pagina in una scheda normale di Chrome: dal menu ⋮ scegli «Aggiungi a schermata Home», poi «Installa» se disponibile. Una sola icona apre tutti e sei i giochi.';
+    installHelp.hidden = false;
+    install.setAttribute('aria-expanded', 'true');
+  }
+  function closeInstallHelp() {
+    installHelp.hidden = true; install.setAttribute('aria-expanded', 'false');
+  }
+  document.getElementById('close-install-help').addEventListener('click', function () { closeInstallHelp(); install.focus(); });
+  install.addEventListener('click', async function () {
+    if (!promptEvent) { showInstallHelp(); return; }
+    var event = promptEvent; promptEvent = null;
+    closeInstallHelp(); install.disabled = true;
+    try {
+      await event.prompt();
+      await event.userChoice;
+    } catch (e) { showInstallHelp(); }
+    finally { install.disabled = false; }
   });
-  window.addEventListener('appinstalled', function () { promptEvent = null; install.hidden = true; });
+  window.addEventListener('appinstalled', function () { promptEvent = null; install.disabled = false; });
   function active(registration) {
     var worker = registration.installing || registration.waiting || registration.active;
     if (!worker) return Promise.reject(new Error('Download non disponibile'));

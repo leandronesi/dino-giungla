@@ -121,6 +121,10 @@ Ora puoi installare **tutti e sei i giochi con una sola icona**, **Il mondo dei 
 2. Tocca **Installa tutti i giochi** (oppure usa **Aggiungi a schermata Home**).
 3. Lascia Internet acceso finché compare **Tutti e sei i giochi sono pronti anche senza Internet**.
 
+Il pulsante resta visibile anche quando Chrome non offre l'installazione diretta:
+in quel caso apre le istruzioni per aggiungere la collection alla schermata Home.
+Su iPhone le istruzioni indicano Safari e il menu Condividi.
+
 La collection comprende Giungla, Kart, Officina, Stazione, Run e Super Dino.
 Ogni gioco si apre dentro l'app; **Tutti i giochi** torna al catalogo e salva
 subito i progressi prima di chiuderlo. I profili restano separati per gioco,

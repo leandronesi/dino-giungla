@@ -49,6 +49,8 @@ async function main() {
   async function until(expression, label) { for (let i = 0; i < 200; i++) { if (await run(expression)) return; await delay(100); } assert.fail(label); }
   await call('Page.enable'); await call('Runtime.enable');
   await call('Page.addScriptToEvaluateOnNewDocument', { source: 'window.AudioContext=window.webkitAudioContext=undefined;try{speechSynthesis.speak=function(){};}catch(e){}' });
+  // Reproduce a mobile browser that never delivers the native install event to the app.
+  await call('Page.addScriptToEvaluateOnNewDocument', { source: "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();e.stopImmediatePropagation();});" });
   await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   // A profile created at the original game URL must be available inside the collection.
   await call('Page.navigate', { url: origin + '/dino-run/' });
@@ -56,6 +58,14 @@ async function main() {
   const account = await run("G.accounts.create({name:'Salvataggio esistente',color:G.C.dino,level:1}).id");
   await call('Page.navigate', { url: origin + '/dino-giungla/collection.html' });
   await until("location.pathname.endsWith('/collection/') && !!document.querySelector('#catalog')", 'Legacy collection did not open app');
+  await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  assert.equal(await run("document.querySelector('#install-app').hidden"), false, 'Install action disappeared without a native event');
+  await run("document.querySelector('#install-app').click()");
+  assert.equal(await run("document.querySelector('#install-help').hidden"), false, 'Missing install event left a dead button');
+  assert(await run("document.querySelector('#install-help-body').textContent.includes('schermata Home')"), 'Missing manual install instructions');
+  await run("document.querySelector('#close-install-help').click()");
+  assert.equal(await run("document.querySelector('#install-help').hidden"), true);
+  await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   if (!published) {
     await until("document.querySelector('#offline-status').dataset.state === 'error'", 'Incomplete download was reported as ready');
     assert.equal(await run("document.querySelector('#retry-download').hidden"), false);
