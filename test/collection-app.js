@@ -58,6 +58,7 @@ async function main() {
   const account = await run("G.accounts.create({name:'Salvataggio esistente',color:G.C.dino,level:1}).id");
   await call('Page.navigate', { url: origin + '/dino-giungla/collection.html' });
   await until("location.pathname.endsWith('/collection/') && !!document.querySelector('#catalog')", 'Legacy collection did not open app');
+  await until("document.readyState === 'complete'", 'Collection scripts did not finish loading');
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.equal(await run("document.querySelector('#install-app').hidden"), false, 'Install action disappeared without a native event');
   await run("document.querySelector('#install-app').click()");
