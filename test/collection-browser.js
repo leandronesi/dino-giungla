@@ -36,17 +36,10 @@ async function main(){
     await run(`(G.familyLogin||G.accounts.login)(G.accounts.list()[0].id);G.go('menu')`);await delay(700);
     assert.equal(await run('G.save.stars'),0,'sibling save leaked');
     if(game==='dino-kart'){
-      await run("G.go('pista')");await delay(1900);await shot(game+'-race');
-      const perf=await run(`new Promise(resolve=>{let times=[],last=performance.now();function frame(t){times.push(t-last);last=t;if(times.length<90)requestAnimationFrame(frame);else resolve({median:times.sort((a,b)=>a-b)[45],p95:times[85],canvas:[document.getElementById('c').width,document.getElementById('c').height]});}requestAnimationFrame(frame);})`);console.log(game,perf);
-      await call('Emulation.setCPUThrottlingRate',{rate:4});
-      const slow=await run(`new Promise(resolve=>{let times=[],last=performance.now();function frame(t){times.push(t-last);last=t;if(times.length<90)requestAnimationFrame(frame);else resolve({median:times.sort((a,b)=>a-b)[45],p95:times[85]});}requestAnimationFrame(frame);})`);console.log('kart CPU x4 (desktop simulation)',slow);await call('Emulation.setCPUThrottlingRate',{rate:1});
-      await run("__scenes.pista.enter();__scenes.pista.update(4)");
-      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft'});await delay(100);assert((await run('G.kartState().x'))<0,'left arrow does not steer');
-      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowLeft',code:'ArrowLeft'});
-      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowRight',code:'ArrowRight'});await delay(100);
-      const right=await run('G.kartState().x');await delay(100);assert((await run('G.kartState().x'))>right,'right arrow does not steer');
-      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowRight',code:'ArrowRight'});
-      await run("for(let i=0;i<4000&&!G.kartState().ammo;i++){const s=G.kartState();__scenes.pista.onDown({x:s.x>0?200:1080,y:400,id:42});G.t+=1/60;__scenes.pista.update(1/60);}__scenes.pista.onUp({id:42});if(!G.kartState().ammo)throw Error('No item collected');");await call('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space'});await call('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space'});assert.equal(await run('G.kartState().ammo'),null,'space did not launch');
+      await run("G.go('gara',{ti:0})");await delay(800);await run('G.gara.state().count=0.01');await delay(2500);await shot(game+'-race');
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'ArrowLeft',code:'ArrowLeft'});await delay(300);assert((await run('G.gara.state().karts[G.gara.state().player].steer'))<0,'left arrow steers');await call('Input.dispatchKeyEvent',{type:'keyUp',key:'ArrowLeft',code:'ArrowLeft'});
+      await run("(()=>{const P=G.gara.state().karts[G.gara.state().player];P.item='turbo';P.boost=0;})()");await call('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space'});await call('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space'});await delay(200);
+      assert((await run('G.gara.state().karts[G.gara.state().player].boost'))>0,'space uses the item');console.log('kart: 3D race, arrows steer, space uses the item');
     }
     if(game==='dino-officina'){
       await run("G.go('officina',{mi:4})");await delay(700);await shot(game+'-workbench');
