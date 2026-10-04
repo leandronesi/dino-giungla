@@ -43,7 +43,13 @@ fs.writeFileSync(path.join(root, 'index.html'), html);
 // The template counts too — changing only the caching strategy still has to
 // invalidate what the old strategy put there.
 const swTpl = read('sw.template.js');
-const hash = crypto.createHash('sha1').update(html).update(swTpl).digest('hex').slice(0, 10);
+const collectionTpl = read('collection/sw.template.js');
+const collectionHash = crypto.createHash('sha1').update(read('collection/index.html')).update(read('collection/app.js')).update(read('manifest.webmanifest')).update(collectionTpl).digest('hex').slice(0, 10);
+const collectionSw = collectionTpl.replace('__VERSION__', () => collectionHash);
+new vm.Script(read('collection/app.js'), { filename: 'collection/app.js' });
+new vm.Script(collectionSw, { filename: 'collection/sw.js' });
+fs.writeFileSync(path.join(root, 'collection/sw.js'), collectionSw);
+const hash = crypto.createHash('sha1').update(html).update(swTpl).update(collectionHash).digest('hex').slice(0, 10);
 const sw = swTpl.replace('__VERSION__', () => hash);
 fs.writeFileSync(path.join(root, 'sw.js'), sw);
 

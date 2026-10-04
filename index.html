@@ -13,6 +13,12 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
+<script>
+// Existing Giungla home-screen icons open the collection; the game remains usable inside it.
+if (window.top === window && (navigator.standalone || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches)) {
+  location.replace('collection/');
+}
+</script>
 <style>*, *::before, *::after { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0; height: 100%; width: 100%;

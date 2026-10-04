@@ -10,6 +10,13 @@ async function main(){
     events.activate({waitUntil:p=>work=p});await work;
     assert.deepEqual(deleted,[game+'-old'],game+' removed another application cache');
   }
-  console.log('PASS: all six service workers preserve sibling and unrelated caches');
+  const events={},deleted=[];let work;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../collection/sw.template.js'),'utf8'),{
+    self:{addEventListener:(n,f)=>events[n]=f,clients:{claim:()=>Promise.resolve()}},
+    caches:{keys:()=>Promise.resolve(games.map(g=>g+'-old').concat('dino-collection-old','dino-collection-__VERSION__')),delete:k=>{deleted.push(k);return Promise.resolve(true);}},Promise
+  });
+  events.activate({waitUntil:p=>work=p});await work;
+  assert.deepEqual(deleted,['dino-collection-old'],'collection removed game caches');
+  console.log('PASS: all six game workers and the collection worker preserve unrelated caches');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

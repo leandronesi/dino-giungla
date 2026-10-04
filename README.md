@@ -115,6 +115,36 @@ https://<tuo-utente>.github.io/dino-giungla/
 
 ### 2. Installarlo sul tablet
 
+Ora puoi installare **tutti e sei i giochi con una sola icona**, **Il mondo dei Dino**:
+
+1. Apri `https://leandronesi.github.io/dino-giungla/collection/` in Chrome.
+2. Tocca **Installa tutti i giochi** (oppure usa **Aggiungi a schermata Home**).
+3. Lascia Internet acceso finché compare **Tutti e sei i giochi sono pronti anche senza Internet**.
+
+La collection comprende Giungla, Kart, Officina, Stazione, Run e Super Dino.
+Ogni gioco si apre dentro l'app; **Tutti i giochi** torna al catalogo e salva
+subito i progressi prima di chiuderlo. I profili restano separati per gioco,
+con le stesse chiavi e gli stessi indirizzi di prima. Non serve installare
+i giochi uno per uno. Se il download si interrompe, **Riprova il download**
+completa i file mancanti; il catalogo indica quanti giochi sono pronti offline.
+
+Il manifest conserva l'identità di Dino Giungla e cambia nome e pagina di avvio:
+Chrome può aggiornare l'icona Giungla già installata alla collection, senza
+creare un'app duplicata. Anche il vecchio avvio Giungla a schermo intero
+porta al catalogo quando riceve la pagina aggiornata. L'aggiornamento delle icone già installate dipende
+dai tempi di Chrome; l'indirizzo della collection si può aprire subito.
+
+I giochi restano pubblicati nei sei repository originali. La collection usa
+un worker limitato a `collection/` e prepara anche i worker degli altri giochi;
+nessuna cache di un altro gioco viene eliminata. Gli aggiornamenti di ciascun
+gioco continuano a seguire il suo deploy e la sua strategia network-first.
+
+Collaudo della collection: `node build.js`, `node test/collection-app.js`,
+`node test/collection-cache.js`. Il test browser richiede Chrome e le sei
+cartelle sorelle, come il collaudo della collection precedente.
+`node test/collection-launch.js` verifica l'avvio dalle vecchie icone;
+`node test/collection-app.js --live` ripete il controllo sui siti GitHub Pages.
+
 Apri quell'indirizzo con **Chrome sul tablet** → menu **⋮** → **Aggiungi a
 schermata Home**. Da lì in poi è un'icona come le altre, parte a schermo intero
 senza barre del browser, e **funziona anche senza connessione** (il service
