@@ -1,5 +1,5 @@
 /* Collection shell only. Each game retains its worker and its saves. */
-var CACHE = 'dino-collection-c886acb94f';
+var CACHE = 'dino-collection-64d3245fe7';
 var ASSETS = ['./', './index.html', './app.js', '../manifest.webmanifest', '../icon.svg', '../icon-180.png', '../icon-192.png', '../icon-512.png', '../icon-maskable-512.png', '../test/collection-frames/dino-kart-race.png', '../test/collection-frames/dino-officina-workbench.png', '../test/collection-frames/dino-stazione-switches.png', '../test/collection-frames/dino-run-running.png', '../test/collection-frames/dino-mario-play.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));

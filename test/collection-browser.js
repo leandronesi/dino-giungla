@@ -49,8 +49,9 @@ async function main(){
       await run("for(let i=0;i<4000&&!G.kartState().ammo;i++){const s=G.kartState();__scenes.pista.onDown({x:s.x>0?200:1080,y:400,id:42});G.t+=1/60;__scenes.pista.update(1/60);}__scenes.pista.onUp({id:42});if(!G.kartState().ammo)throw Error('No item collected');");await call('Input.dispatchKeyEvent',{type:'keyDown',key:' ',code:'Space'});await call('Input.dispatchKeyEvent',{type:'keyUp',key:' ',code:'Space'});assert.equal(await run('G.kartState().ammo'),null,'space did not launch');
     }
     if(game==='dino-officina'){
-      await run("G.go('officina',{id:'spazio-1'});G.officinaAutoBuild(false)");await shot(game+'-workbench');
-      await run("G.officinaTest();for(let i=0;i<150;i++)__scenes.officina.update(1/60)");assert.equal(await run('G.officinaState().state'),'win');
+      await run("G.go('officina',{mi:4})");await delay(700);await shot(game+'-workbench');
+      const won=await run("(()=>{const m=G.percorsi.MISSIONS[0];G.strada.quiet(true);G.strada.reset(0,m.sol);for(let f=0;f<60*90&&G.strada.state().phase!=='win';f++)G.strada.step({gas:true});G.strada.quiet(false);return G.strada.state().phase;})()");
+      assert.equal(won,'win','the first mission is driven to the finish');console.log('officina: built and driven to the finish');
     }
     if(game==='dino-stazione'){
       await run("G.go('stazione',{level:2})");await delay(700);await run('G.traffic.start();G.traffic.state().spawnT=0');await delay(6000);await shot(game+'-switches');
