@@ -137,6 +137,32 @@ async function main() {
     assert.equal(await run("document.querySelector('#game-frame').contentWindow.location.pathname"), '/' + game + '/');
   }
   async function home() { await run("document.querySelector('#back-to-games').click()"); await until("!document.querySelector('#game-frame') && !document.querySelector('#catalog').hidden", 'Home did not unload game'); }
+  async function checkSuperDinoKeys(gameWindow) {
+    const game = gameWindow + '.G';
+    await run(`(()=>{const g=${game};const a=g.accounts.create({name:'Tastiera',level:2});g.accounts.login(a.id);g.go('gioco',{level:0});})()`);
+    await until(`${game}.current === 'gioco' && ${game}.mario.state().phase === 'ready'`, 'Super Dino did not open the first level');
+    const x = await run(`${game}.mario.state().p.x`);
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight' });
+    await delay(260);
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight' });
+    assert(await run(`${game}.mario.state().p.x > ${x} + 20`), 'The right arrow must start the level and move Super Dino');
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowLeft', code: 'ArrowLeft' });
+    await until(`${game}.mario.state().p.vx < 0`, 'The left arrow does not move Super Dino');
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowLeft', code: 'ArrowLeft' });
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowUp', code: 'ArrowUp' });
+    await until(`${game}.mario.state().p.vy < -100`, 'The up arrow does not jump');
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowUp', code: 'ArrowUp' });
+  }
+  await open('dino-mario');
+  await until("document.activeElement === document.querySelector('#game-frame')", 'Opening Super Dino leaves keyboard focus outside the game');
+  await checkSuperDinoKeys("document.querySelector('#game-frame').contentWindow");
+  await home();
+  await call('Page.navigate', { url: origin + '/dino-mario/' });
+  await until('!!window.G && G.current === "accesso"', 'Standalone Super Dino did not load');
+  await checkSuperDinoKeys('window');
+  await call('Page.navigate', { url: origin + '/dino-giungla/collection/' });
+  await until("document.querySelector('#offline-status')?.dataset.state === 'ready'", 'Catalog did not reopen after standalone Super Dino');
+  console.log('PASS desktop arrows start, move and jump in Super Dino from the catalog and standalone');
   await open('dino-run');
   assert(await run(`document.querySelector('#game-frame').contentWindow.G.accounts.list().some(a => a.id === ${JSON.stringify(account)})`), 'Original account lost');
   await run(`(()=>{const g=document.querySelector('#game-frame').contentWindow.G;g.accounts.login(${JSON.stringify(account)});g.save.stars=37;g.saveNow();})()`);

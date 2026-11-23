@@ -42,10 +42,13 @@
     frame.addEventListener('load', function () {
       if (frame !== openedFrame) return;
       try {
-        if (!frame.contentWindow.G) { document.getElementById('game-error').hidden = false; return; }
+        if (!frame.contentWindow.G) throw new Error('Gioco non disponibile');
         frame.contentWindow.G.toggleFullscreen = fullscreen;
-      } catch (e) { document.getElementById('game-error').hidden = false; }
-      document.getElementById('back-to-games').focus();
+        if (document.activeElement === document.body) frame.focus();
+      } catch (e) {
+        document.getElementById('game-error').hidden = false;
+        document.getElementById('back-to-games').focus();
+      }
     });
     player.appendChild(frame);
   }
