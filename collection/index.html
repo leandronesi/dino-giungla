@@ -3,48 +3,134 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#173f35">
+<meta name="theme-color" content="#181630">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Il mondo dei Dino">
-<title>Il mondo dei Dino</title>
+<meta name="apple-mobile-web-app-title" content="Sala Giochi Dino">
+<title>Sala Giochi Dino</title>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../icon-180.png">
 <style>
-*{box-sizing:border-box}body{margin:0;background:#eaf1df;color:#173f35;font-family:'Trebuchet MS',sans-serif}main{max-width:1180px;margin:auto;padding:30px 24px}header{margin:12px 0 26px}h1{font-size:clamp(34px,6vw,62px);margin:0 0 12px;letter-spacing:-2px}p{font-size:22px;margin:0}nav{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}.card{display:block;background:#fff8e5;border:3px solid #214d3e;border-radius:28px;overflow:hidden;color:inherit;text-decoration:none;box-shadow:0 6px 0 #bed0b4;transition:transform .15s}.card:active{transform:translateY(4px)}a:focus-visible,button:focus-visible{outline:5px solid #e19429;outline-offset:4px}.card img{display:block;width:100%;height:155px;object-fit:cover;background:#183f37}.card section{padding:17px 20px 22px}h2{font-size:28px;margin:0 0 7px}.card p{font-size:18px;line-height:1.4}.card b{display:inline-block;margin-top:15px;border-radius:16px;background:#2e8254;color:white;padding:12px 24px;font-size:22px}button{font:inherit;border:0;border-radius:14px;padding:12px 20px;background:#2e8254;color:white;cursor:pointer;min-height:48px}.setup{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px}.setup p{font-size:17px;line-height:1.4;flex:1;min-width:220px}#player{position:fixed;inset:0;background:#123d29;display:flex;flex-direction:column}[hidden]{display:none!important}.player-bar{display:flex;align-items:center;gap:16px;padding:6px max(12px,env(safe-area-inset-left));color:#fff8e5;flex:none}.player-bar strong{font-size:20px}.player-bar button{padding:8px 18px;min-height:44px}#game-frame{width:100%;flex:1;border:0;min-height:0;background:#123d29}#game-error{padding:24px;color:#fff8e5;font-size:20px}@media(max-width:850px){nav{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){nav{grid-template-columns:1fr}main{padding:20px 16px}.player-bar strong{font-size:16px}}
+:root {
+  color-scheme: dark;
+  --night: #181630;
+  --panel: #262342;
+  --paper: #fff8ea;
+  --muted: #d3cae6;
+  --yellow: #ffe16a;
+  font-family: system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(circle at 1px 1px, #a99cc229 1px, transparent 0) 0 0 / 22px 22px, var(--night);
+  color: var(--paper);
+}
+main { width: min(1120px, 100% - 48px); margin: auto; padding: 40px 0 48px; }
+header { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 24px; margin-bottom: 29px; }
+h1 { margin: 0; font-size: clamp(2.95rem, 7.5vw, 5.55rem); font-weight: 950; line-height: .92; letter-spacing: -.075em; }
+h1 span { color: var(--yellow); }
+header p { margin: 15px 0 0; color: var(--muted); font-size: 1.12rem; }
+.setup { display: grid; align-content: end; align-items: start; justify-items: start; gap: 9px; max-width: 300px; }
+.setup p { margin: 0; font-size: .85rem; line-height: 1.35; }
+#offline-status::before { content: ''; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; margin-right: .5rem; background: var(--yellow); }
+#offline-status[data-state="ready"]::before { background: #91edc4; }
+#offline-status[data-state="error"]::before { background: #ff9e99; }
+details { position: relative; }
+summary, button {
+  display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: 8px 16px;
+  border: 2px solid #857aab; border-radius: 13px; background: var(--panel);
+  color: var(--paper); cursor: pointer; font: 750 .9rem system-ui, sans-serif;
+}
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: '↓'; color: var(--yellow); font-size: 1.25rem; }
+#install-help {
+  position: absolute; inset: calc(100% + 8px) auto auto 0; z-index: 2; width: min(350px, calc(100vw - 48px));
+  padding: 20px; border: 2px solid #857aab; border-radius: 18px; background: var(--panel); box-shadow: 0 10px 35px #08061883;
+}
+#install-help h2 { margin: 0 0 12px; font-size: 1.25rem; }
+#install-help p { margin: 0 0 12px; color: var(--paper); font-size: .95rem; }
+nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 19px; }
+.card {
+  --accent: #91edc4;
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden; text-decoration: none;
+  border: 2px solid var(--accent); border-radius: 22px; background: var(--panel); color: var(--paper);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 53%, var(--night)); transition: transform .16s ease, box-shadow .16s ease;
+}
+.card:nth-child(2) { --accent: #ffcb83; }
+.card:nth-child(3) { --accent: #b7abff; }
+.card:nth-child(4) { --accent: #ffa9c3; }
+.card:nth-child(5) { --accent: #8cdefb; }
+.card:nth-child(6) { --accent: #ffe16a; }
+.card-media { width: 100%; aspect-ratio: 2.05; overflow: hidden; background: #363054; }
+.card img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card div:last-child { display: flex; flex: 1; gap: 10px; align-items: center; justify-content: space-between; padding: 13px 14px 14px 16px; }
+.card h2 { margin: 0; font-size: clamp(1rem, 2.2vw, 1.45rem); line-height: 1.12; }
+.play { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #191630; }
+.play::after { content: ''; margin-left: 3px; border: solid transparent; border-width: 8px 0 8px 12px; border-left-color: currentColor; }
+@media (hover: hover) {
+  .card:hover { transform: translateY(-4px); box-shadow: 0 9px 0 color-mix(in srgb, var(--accent) 53%, var(--night)); }
+}
+.card:active { transform: translateY(3px); }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 5px; }
+#player { position: fixed; inset: 0; display: flex; flex-direction: column; background: #123d29; }
+[hidden] { display: none !important; }
+.player-bar { display: flex; gap: 12px; align-items: center; flex: none; padding: max(5px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 5px max(12px, env(safe-area-inset-left)); background: var(--night); }
+#game-frame { width: 100%; flex: 1; min-height: 0; border: 0; }
+#game-error { margin: 0; padding: 20px; background: var(--panel); }
+@media (min-width: 761px) {
+  .setup { margin-left: auto; }
+  #install-help { inset-inline: auto 0; }
+}
+@media (max-width: 760px) {
+  main { width: calc(100% - 32px); padding-top: 27px; }
+  header { align-items: start; gap: 17px; margin-bottom: 20px; }
+  #install-help { width: min(350px, calc(100vw - 32px)); }
+  nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+  .card { border-radius: 16px; }
+  .card div:last-child { padding: 8px 8px 8px 10px; gap: 5px; }
+  .play { width: 35px; height: 35px; }
+  .play::after { border-width: 6px 0 6px 9px; }
+}
+@media (max-width: 340px) { .card h2 { font-size: .9rem; } .play { width: 28px; height: 28px; } }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover, .card:active { transform: none; } }
 </style>
 <script src="app.js" defer></script>
 </head>
 <body>
 <main id="catalog">
-<header><h1>Il mondo dei Dino</h1><p>Una nuova avventura. Quale scegli?</p>
-<div class="setup">
-<details id="install-options">
-<summary id="install-app" style="display:block;list-style:none;font-size:18px;border-radius:14px;padding:14px 20px;background:#2e8254;color:white;cursor:pointer;min-height:48px">Installa tutti i giochi</summary>
-<section id="install-help" aria-labelledby="install-help-title" style="margin-top:16px;padding:20px;background:#fff8e5;border:2px solid #214d3e;border-radius:18px;max-width:680px">
-<h2 id="install-help-title">Una sola icona per tutti e sei i giochi</h2>
-<div id="install-help-body" style="font-size:18px;line-height:1.5">
-<p style="font-size:18px;line-height:1.5"><strong>Chrome su Android:</strong> apri il menu ⋮ e scegli «Aggiungi a schermata Home».</p>
-<p style="font-size:18px;line-height:1.5;margin-top:12px"><strong>Se dice «Questa app è già installata»:</strong> tocca «Fai clic per aprire l’app». Se apre ancora un singolo gioco, torna qui e scegli «Crea scorciatoia»: avrai sulla Home il collegamento a tutti e sei i giochi.</p>
-<p style="font-size:18px;line-height:1.5;margin-top:12px"><strong>iPhone:</strong> apri questa pagina in Safari, tocca Condividi e «Aggiungi alla schermata Home».</p>
-</div>
-<button id="close-install-help" style="margin-top:12px" onclick="this.closest('details').open=false">Ho capito</button>
-</section>
-</details>
-<p id="offline-status" role="status" aria-live="polite" data-state="loading">Preparo i sei giochi per giocare anche senza Internet…</p>
-<button id="retry-download" hidden>Riprova il download</button>
-</div>
-</header>
-<nav aria-label="Scegli un gioco">
-<a class="card" data-game="dino-giungla" href="/dino-giungla/"><img src="../icon.svg" alt=""><section><h2>Dino Giungla</h2><p>Conta, scopri e prenditi cura del tuo piccolo mondo.</p><b>Esplora →</b></section></a>
-<a class="card" data-game="dino-kart" href="/dino-kart/"><img src="../test/collection-frames/dino-kart-race.png" alt=""><section><h2>Dino Kart</h2><p>Kart in 3D: otto piste, derapate, armi e Gran Premio.</p><b>In pista →</b></section></a>
-<a class="card" data-game="dino-officina" href="/dino-officina/"><img src="../test/collection-frames/dino-officina-workbench.png" alt=""><section><h2>Dino Officina</h2><p>Monta il tuo veicolo e guidalo su colline, fiumi e burroni.</p><b>Costruisci →</b></section></a>
-<a class="card" data-game="dino-stazione" href="/dino-stazione/"><img src="../test/collection-frames/dino-stazione-switches.png" alt=""><section><h2>Dino Stazione</h2><p>Prepara gli scambi e accompagna ogni treno.</p><b>Tutti a bordo →</b></section></a>
-<a class="card" data-game="dino-run" href="/dino-run/"><img src="../test/collection-frames/dino-run-running.png" alt=""><section><h2>Dino Run</h2><p>Tre cuori, salti e sentieri nella giungla.</p><b>Corri →</b></section></a>
-<a class="card" data-game="dino-mario" href="/dino-mario/"><img src="../test/collection-frames/dino-mario-play.png" alt=""><section><h2>Super Dino</h2><p>Salta sui blocchi, schiaccia gli scarabei, arriva alla bandiera.</p><b>Salta →</b></section></a>
-</nav></main>
+  <header>
+    <div><h1>Sala Giochi <span>Dino</span></h1><p>Scegli un gioco.</p></div>
+    <div class="setup">
+      <details id="install-options">
+        <summary id="install-app">Installa tutti i giochi</summary>
+        <section id="install-help" aria-labelledby="install-help-title">
+          <h2 id="install-help-title">Aggiungi la Sala Giochi alla Home</h2>
+          <div id="install-help-body">
+            <p><strong>Android</strong> · In Chrome, apri il menu ⋮ e scegli «Aggiungi a schermata Home».</p>
+            <p><strong>App già installata</strong> · Aprila. Se compare ancora un singolo gioco, torna qui e scegli «Crea scorciatoia».</p>
+            <p><strong>iPhone o iPad</strong> · In Safari, tocca Condividi e «Aggiungi alla schermata Home».</p>
+          </div>
+          <button id="close-install-help" onclick="this.closest('details').open=false">Ho capito</button>
+        </section>
+      </details>
+      <p id="offline-status" role="status" aria-live="polite" data-state="loading">Preparo i giochi per giocare senza Internet…</p>
+      <button id="retry-download" hidden>Riprova il download</button>
+    </div>
+  </header>
+  <nav aria-label="Scegli un gioco">
+    <a class="card" data-game="dino-giungla" href="/dino-giungla/"><div class="card-media"><img src="../test/collection-frames/giungla-bus-map.png" alt="" width="1280" height="720"></div><div><h2>Dino Giungla</h2><span class="play" aria-hidden="true"></span></div></a>
+    <a class="card" data-game="dino-kart" href="/dino-kart/"><div class="card-media"><img src="../test/collection-frames/dino-kart-race.png" alt="" width="1280" height="720"></div><div><h2>Dino Kart</h2><span class="play" aria-hidden="true"></span></div></a>
+    <a class="card" data-game="dino-officina" href="/dino-officina/"><div class="card-media"><img src="../test/collection-frames/dino-officina-workbench.png" alt="" width="1280" height="720"></div><div><h2>Dino Officina</h2><span class="play" aria-hidden="true"></span></div></a>
+    <a class="card" data-game="dino-stazione" href="/dino-stazione/"><div class="card-media"><img src="../test/collection-frames/dino-stazione-switches.png" alt="" width="1280" height="720"></div><div><h2>Dino Stazione</h2><span class="play" aria-hidden="true"></span></div></a>
+    <a class="card" data-game="dino-run" href="/dino-run/"><div class="card-media"><img src="../test/collection-frames/dino-run-running.png" alt="" width="1280" height="720"></div><div><h2>Dino Run</h2><span class="play" aria-hidden="true"></span></div></a>
+    <a class="card" data-game="dino-mario" href="/dino-mario/"><div class="card-media"><img src="../test/collection-frames/dino-mario-play.png" alt="" width="1280" height="720"></div><div><h2>Super Dino</h2><span class="play" aria-hidden="true"></span></div></a>
+  </nav>
+</main>
 <section id="player" aria-label="Gioco" hidden>
-<div class="player-bar"><button id="back-to-games">← Tutti i giochi</button><strong id="game-title"></strong></div>
-<p id="game-error" role="alert" hidden>Il gioco non è ancora scaricato. Torna ai giochi e riprova il download con Internet acceso.</p>
+  <div class="player-bar"><button id="back-to-games">← Tutti i giochi</button><strong id="game-title"></strong></div>
+  <p id="game-error" role="alert" hidden>Il gioco non è ancora scaricato. Torna ai giochi e riprova il download con Internet acceso.</p>
 </section>
-</body></html>
+</body>
+</html>

@@ -89,13 +89,20 @@ async function main() {
   await call('Page.navigate', { url: origin + '/dino-giungla/collection.html' });
   await until("location.pathname.endsWith('/collection/') && !!document.querySelector('#catalog')", 'Legacy collection did not open app');
   await until("document.readyState === 'complete'", 'Collection scripts did not finish loading');
+  assert.equal(await run("document.querySelector('h1').textContent.trim()"), 'Sala Giochi Dino');
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   assert.equal(await run("document.querySelector('#install-app').hidden"), false, 'Install action disappeared without a native event');
   await tapInstall();
   assert(await run("document.querySelector('#install-help').getBoundingClientRect().height > 0"), 'Missing install event left a dead button');
+  assert(await run("document.querySelector('#install-help').getBoundingClientRect().right <= window.innerWidth"), 'Install instructions spill off the phone');
   assert(await run("document.querySelector('#install-help-body').textContent.includes('schermata Home')"), 'Missing manual install instructions');
   await run("document.querySelector('#close-install-help').click()");
   assert.equal(await run("document.querySelector('#install-options').open"), false);
+  assert(await run("document.documentElement.scrollWidth === window.innerWidth"), 'Catalog spills off the phone');
+  await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 650, deviceScaleFactor: 1, mobile: false });
+  await tapInstall();
+  assert(await run("document.querySelector('#install-help').getBoundingClientRect().right <= window.innerWidth"), 'Install instructions spill off the landscape tablet');
+  await run("document.querySelector('#close-install-help').click()");
   await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   if (!published) {
     await until("document.querySelector('#offline-status').dataset.state === 'error'", 'Incomplete download was reported as ready');
@@ -117,7 +124,7 @@ async function main() {
   }
   const manifest = await call('Page.getAppManifest');
   assert.deepEqual(manifest.errors, []);
-  assert.equal(JSON.parse(manifest.data).name, 'Il mondo dei Dino');
+  assert.equal(JSON.parse(manifest.data).name, 'Sala Giochi Dino');
   assert.equal(JSON.parse(manifest.data).scope, './');
   assert.deepEqual((await call('Page.getInstallabilityErrors')).installabilityErrors, []);
   assert.equal(await run("document.querySelectorAll('[data-game]').length"), 6);

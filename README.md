@@ -115,7 +115,7 @@ https://<tuo-utente>.github.io/dino-giungla/
 
 ### 2. Installarlo sul tablet
 
-Ora puoi installare **tutti e sei i giochi con una sola icona**, **Il mondo dei Dino**:
+Ora puoi installare **tutti e sei i giochi con una sola icona**, **Sala Giochi Dino**:
 
 1. Apri `https://leandronesi.github.io/dino-giungla/collection/` in Chrome.
 2. Tocca **Installa tutti i giochi** (oppure usa **Aggiungi a schermata Home**).

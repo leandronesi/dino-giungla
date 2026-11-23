@@ -136,7 +136,7 @@
     if (preparing) return;
     preparing = true; retry.hidden = true; status.dataset.state = 'loading';
     if (!('serviceWorker' in navigator) || !window.isSecureContext) {
-      status.dataset.state = 'error'; status.textContent = 'Apri la collection dal suo indirizzo HTTPS per installarla e scaricare i giochi.';
+      status.dataset.state = 'error'; status.textContent = 'Apri la Sala Giochi dal suo indirizzo HTTPS per installarla e scaricare i giochi.';
       preparing = false; return;
     }
     var count = 0;

@@ -2,7 +2,7 @@
 'use strict';
 const fs=require('fs'),path=require('path'),http=require('http'),os=require('os'),assert=require('assert');
 const {spawn}=require('child_process');
-const root=path.resolve(__dirname,'../..'),out=path.join(__dirname,'collection-frames');
+const root=path.resolve(__dirname,'../..'),out=process.env.DINO_TEST_FRAMES || path.join(__dirname,'collection-frames');
 const chrome=['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'].find(fs.existsSync);
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 let child,ws,server;
@@ -42,7 +42,34 @@ async function main(){
       assert((await run('G.gara.state().karts[G.gara.state().player].boost'))>0,'space uses the item');console.log('kart: 3D race, arrows steer, space uses the item');
     }
     if(game==='dino-officina'){
-      await run("G.go('officina',{mi:4})");await delay(700);await shot(game+'-workbench');
+      await run("G.go('officina',{mi:-1})");await delay(700);
+      for(const [x,y] of [[170,170],[170,315],[170,465],[270,615],[1130,204]]) await tap(x,y);
+      assert.equal(await run('G.officinaShop.state().v.extra'),'razzo','the bench rocket is mounted with a tap');
+      assert.equal(await run('G.officinaShop.state().track'),'salti','the free jump piste can be selected');
+      await tap(771,471);
+      assert(await run('G.officinaShop.state().preview > 0'),'the rocket is previewed on the bench');
+      await shot(game+'-workbench');
+      await tap(940,657);await delay(700);
+      assert.equal(await run('G.strada.state().track'),'salti');
+      await run(`(()=>{
+        const canvas=document.getElementById('c'),capture=canvas.setPointerCapture;
+        canvas.setPointerCapture=()=>{};
+        try {
+          const pointer=(type,id,clientX,clientY)=>canvas.dispatchEvent(new PointerEvent(type,{pointerId:id,clientX,clientY,pointerType:'touch'}));
+          pointer('pointerdown',41,1170,580);
+          pointer('pointerdown',42,1150,136);
+          pointer('pointerup',41,1170,580);
+          pointer('pointerup',42,1150,136);
+        } finally { canvas.setPointerCapture=capture; }
+      })()`);
+      assert(await run('G.strada.state().cruise'),'optional auto accelerator is enabled');
+      await tap(1150,136);await delay(500);
+      assert(!await run('G.strada.state().cruise'),'auto acceleration can be switched off');
+      assert.equal(await run('G.strada.state().vx'),0,'the released pedal does not remain held');
+      await call('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:306,y:612,id:1}]});
+      await call('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      await delay(80);
+      assert(await run('G.strada.state().rt > 0'),'a real touch starts the rocket');
       const won=await run("(()=>{const m=G.percorsi.MISSIONS[0];G.strada.quiet(true);G.strada.reset(0,m.sol);for(let f=0;f<60*90&&G.strada.state().phase!=='win';f++)G.strada.step({gas:true});G.strada.quiet(false);return G.strada.state().phase;})()");
       assert.equal(won,'win','the first mission is driven to the finish');console.log('officina: built and driven to the finish');
     }
